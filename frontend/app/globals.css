@@ -1,0 +1,142 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+@layer base {
+  :root {
+    --background: 40 50% 98%;
+    --foreground: 20 14% 18%;
+    --card: 0 0% 100%;
+    --card-foreground: 20 14% 18%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 14% 18%;
+    --primary: 340 70% 75%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 40 50% 95%;
+    --secondary-foreground: 20 14% 18%;
+    --muted: 40 40% 96%;
+    --muted-foreground: 20 10% 55%;
+    --accent: 140 25% 78%;
+    --accent-foreground: 140 25% 20%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 30 30% 90%;
+    --input: 30 30% 90%;
+    --ring: 340 70% 75%;
+    --radius: 0.75rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-cream-100 text-foreground font-sans antialiased;
+    background-image: radial-gradient(
+      ellipse at top,
+      rgba(244, 167, 185, 0.06) 0%,
+      transparent 60%
+    );
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Better focus styles */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-rose-300 ring-offset-2;
+  }
+}
+
+@layer components {
+  /* Chat bubble styles */
+  .bubble-own {
+    @apply bg-rose-300 text-white rounded-3xl rounded-br-sm px-4 py-2.5 max-w-xs md:max-w-md shadow-soft;
+  }
+
+  .bubble-partner {
+    @apply bg-white text-foreground rounded-3xl rounded-bl-sm px-4 py-2.5 max-w-xs md:max-w-md shadow-card border border-border;
+  }
+
+  /* Card styles */
+  .card-warm {
+    @apply bg-white rounded-2xl shadow-card border border-cream-200 p-5;
+  }
+
+  /* Memory card */
+  .memory-card {
+    @apply bg-white rounded-2xl shadow-card border border-cream-200 overflow-hidden hover:shadow-warm transition-shadow duration-200;
+  }
+
+  /* Input styles */
+  .input-warm {
+    @apply w-full rounded-xl border border-cream-200 bg-white px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent transition-all duration-200;
+  }
+
+  /* Button styles */
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-full bg-rose-300 px-6 py-2.5 text-sm font-medium text-white hover:bg-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:ring-offset-2 transition-all duration-200 shadow-soft disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-full bg-cream-100 px-6 py-2.5 text-sm font-medium text-foreground border border-cream-200 hover:bg-cream-200 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-cream-100 focus:outline-none focus:ring-2 focus:ring-rose-300 transition-all duration-200;
+  }
+
+  /* Sidebar nav item */
+  .nav-item {
+    @apply flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-cream-100 transition-all duration-150;
+  }
+
+  .nav-item.active {
+    @apply text-rose-500 bg-rose-50;
+  }
+
+  /* Page heading */
+  .page-title {
+    @apply text-2xl font-semibold text-foreground tracking-tight;
+  }
+
+  /* Subtle divider */
+  .divider {
+    @apply border-t border-cream-200 my-6;
+  }
+}
+
+@layer utilities {
+  /* Text gradient */
+  .text-gradient-rose {
+    @apply bg-gradient-to-r from-rose-400 to-rose-500 bg-clip-text text-transparent;
+  }
+
+  /* Fade in animation helper */
+  .animate-in {
+    @apply animate-fade-in;
+  }
+
+  /* Scrollbar styling */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(244, 167, 185, 0.4) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgba(244, 167, 185, 0.4);
+    border-radius: 9999px;
+  }
+}
