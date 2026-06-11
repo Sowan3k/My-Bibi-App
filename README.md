@@ -6,6 +6,18 @@ A self-hosted, privacy-first companion app for two people in a relationship. Bui
 
 ---
 
+## UI Mockup
+
+Three screens — the chat, the memory garden, and the daily bloom ritual.
+
+👉 **[Open interactive mockup](docs/mockup.html)** — open the file locally in a browser, or view it via GitHub Pages.
+
+| Us (Chat) | Memory Garden | Daily Bloom |
+|---|---|---|
+| Private shared chat with voice notes, link previews, and a whisper only you see from the thoughtfulness engine | 48 memories planted, caught moments auto-extracted from chat and editable by both | One shared prompt per day — answers revealed only after both people have replied |
+
+---
+
 ## Ethics Statement
 
 My Bibi is designed with hard limits, not soft suggestions. These are not future roadmap items — they are implemented constraints baked into the API layer:
