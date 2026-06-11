@@ -46,9 +46,9 @@ These guardrails are a feature. They go in the README, stated plainly. The restr
 ## Phases
 
 - **Phase 1:** Two-user auth + invite flow, vault path config, shared chat with text/photos/voice notes, Memory Garden. No AI yet.
-- **Phase 2:** Rich link previews, file sharing, Daily Bloom ritual, milestones, streak, thinking-of-you ping.
-- **Phase 3:** Ollama integration: nudges, memory resurfacing, self-reflection on own journal.
-- **Phase 4:** Journal encryption, PWA polish, Docker Compose packaging.
+- **Phase 2:** Rich link previews, file sharing, Daily Bloom ritual, milestones, streak, thinking-of-you ping, Mood Weather (self-disclosed only — user picks their sky, never inferred), Time Capsule (either partner locks a message+media until a future date — neither can open early), On This Day (date-math resurface of old memories, no AI), Shared Playlist Memories (store a song URL + a note + who shared it, render official embeds, never proxy audio), Letters (deliberate delayed messages with scheduled delivery — a slower inbox alongside chat), Relationship Timeline (chronological story built from existing vault markdown), Future Dreams board (shared goals with progress milestones, archives into timeline when reached).
+- **Phase 3:** Ollama integration: nudges, memory resurfacing, self-reflection on own journal. "I noticed" private insights — analyse ONLY the logged-in user's own messages for recurring topics, unspoken gratitude, unfinished promises; output goes to that user only; never cross-person. All LLM calls route through `ai_service.py`.
+- **Phase 4:** Journal encryption, Gift Vault (private per-user wishlist — wishes, ring sizes, favourite things; encrypted, never visible to partner), Monthly Scrapbook (auto-generated from vault: top photos + memories + blooms + milestones; PDF export; generated locally), Relationship Map (visual garden — each memory is a flower/star/stone by type; timeline grows left-to-right; click opens markdown note; canvas optimised for mobile), PWA polish, Docker Compose packaging.
 
 ## Architecture Rules
 

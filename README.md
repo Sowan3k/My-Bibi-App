@@ -202,22 +202,30 @@ The vault is an Obsidian-compatible folder. You can open it in Obsidian for a be
 - Shared chat (text, photos, voice notes)
 - Memory Garden (save + browse + search)
 
-### Phase 2 — Rituals
-- Rich link previews
-- File sharing
+### Phase 2 — Rituals & Memory
+- Rich link previews, file sharing
 - Daily Bloom ritual polish
 - Milestones, streak, thinking-of-you ping
-- Mood weather (self-disclosure only — never surveillance)
+- **Mood Weather** — you pick your sky (☀️ ⛅ 🌧 ⛈ 🌙); stored in markdown; calendar heatmap; never inferred, never surveillance
+- **Time Capsule** — lock a message + photos + voice note until a future date; neither partner can open early; confetti on unlock
+- **On This Day** — date-math resurface of memories from the same day in past years; no AI required
+- **Shared Playlist Memories** — save a song URL + a note + who shared it + why; renders official embed; never proxies audio
+- **Letters** — deliberate delayed messages with scheduled delivery (tonight / tomorrow morning / custom); slower inbox alongside chat; markdown editor; beautiful paper UI
+- **Relationship Timeline** — chronological story built from existing vault markdown; smooth scrolling; click opens the memory
+- **Future Dreams board** — shared goals (visit Kyoto, first apartment, learn scuba); attach memories as you move toward them; completed dreams archive into the timeline
 
 ### Phase 3 — Local AI
 - Ollama integration (Llama 3.2 3B or Qwen 2.5 3B)
 - Memory resurfacing nudges
 - Own-journal self-reflection
-- Thoughtfulness suggestions
-- Mirror principle enforced at every AI call
+- **"I noticed"** private self-reflection insights — analyses only *your* messages for recurring topics, unspoken gratitude, unfinished promises; output goes to you only; never cross-person; all LLM calls through `ai_service.py`
+- Mirror principle enforced at every AI call; degrades gracefully if Ollama is offline
 
 ### Phase 4 — Privacy + Polish
 - Per-user journal encryption (key derived from password)
+- **Gift Vault** — private per-user wishlist (wishes, ring sizes, favourites); encrypted; never visible to partner
+- **Monthly Scrapbook** — auto-generated from vault: top photos + memories + blooms + milestones; rendered as magazine layout; PDF export; generated locally, no external services
+- **Relationship Map** — visual garden where every memory is a flower/star/stone by type; timeline grows left-to-right; click opens the markdown note; canvas optimised for mobile
 - PWA polish + service worker
 - Docker Compose packaging
 - Public release
