@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { BookOpen, Plus, Lock, Edit2, Trash2, X, Save, ChevronLeft } from "lucide-react";
+import { BookOpen, Plus, Lock, Edit2, Trash2, Save, ChevronLeft, KeyRound } from "lucide-react";
+import Link from "next/link";
 import api from "@/lib/api";
 import type { JournalEntry } from "@/lib/types";
 import { format, parseISO } from "date-fns";
@@ -11,6 +12,7 @@ type View = "list" | "edit" | "read";
 export default function JournalPage() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [locked, setLocked] = useState(false);
   const [view, setView] = useState<View>("list");
   const [selected, setSelected] = useState<JournalEntry | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -23,8 +25,19 @@ export default function JournalPage() {
     try {
       const res = await api.get<JournalEntry[]>("/api/journal");
       setEntries(res.data);
-    } catch (err) {
-      console.error("Failed to load journal", err);
+      setLocked(false);
+    } catch (err: unknown) {
+      // 423 = encrypted entries are locked until next login
+      if (
+        err &&
+        typeof err === "object" &&
+        "response" in err &&
+        (err as { response?: { status?: number } }).response?.status === 423
+      ) {
+        setLocked(true);
+      } else {
+        console.error("Failed to load journal", err);
+      }
     } finally {
       setLoading(false);
     }
@@ -105,37 +118,62 @@ export default function JournalPage() {
     }
   };
 
+  // --- Locked view (encrypted, key not in server memory) ---
+  if (locked) {
+    return (
+      <div className="p-5 max-w-2xl mx-auto">
+        <div className="text-center py-20 animate-fade-in">
+          <div className="inline-flex w-16 h-16 rounded-full tint-brand items-center justify-center mb-4">
+            <KeyRound className="w-7 h-7 text-brand-400" />
+          </div>
+          <p className="font-display text-xl font-medium text-foreground mb-2">
+            Your journal is locked
+          </p>
+          <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-5 leading-relaxed">
+            Your entries are encrypted with a key made from your password.
+            The server was restarted, so the key is gone from memory. Log in
+            again to unlock them — that's the privacy working as intended.
+          </p>
+          <Link href="/login" className="btn-primary inline-flex">
+            Log in to unlock
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   // --- List view ---
   if (view === "list") {
     return (
       <div className="p-5 max-w-2xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 gap-3">
           <div>
             <h1 className="page-title flex items-center gap-2">
-              <BookOpen className="w-6 h-6 text-rose-300" />
+              <BookOpen className="w-6 h-6 text-brand-300" />
               My Pages
             </h1>
             <p className="text-sm text-muted-foreground mt-0.5 flex items-center gap-1">
               <Lock className="w-3 h-3" />
-              Private — only you can read this
+              Private — encrypted, only you can read this
             </p>
           </div>
-          <button onClick={startNew} className="btn-primary flex items-center gap-2">
+          <button onClick={startNew} className="btn-primary flex items-center gap-2 flex-shrink-0">
             <Plus className="w-4 h-4" />
-            New entry
+            <span className="hidden sm:inline">New entry</span>
+            <span className="sm:hidden">New</span>
           </button>
         </div>
 
         {loading ? (
           <div className="space-y-3">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-20 bg-cream-200 rounded-2xl animate-pulse" />
+              <div key={i} className="h-20 skeleton" />
             ))}
           </div>
         ) : entries.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="text-4xl mb-3">📖</div>
-            <p className="text-lg font-medium text-foreground mb-1">
+          <div className="text-center py-16 animate-fade-in">
+            <div className="text-5xl mb-4 animate-float">📖</div>
+            <p className="font-display text-xl font-medium text-foreground mb-1">
               Your pages are blank
             </p>
             <p className="text-sm text-muted-foreground max-w-xs mx-auto mb-4">
@@ -146,12 +184,12 @@ export default function JournalPage() {
             </button>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-3 stagger-children">
             {entries.map((entry) => (
               <button
                 key={entry.id}
                 onClick={() => openEntry(entry)}
-                className="w-full text-left card-warm hover:shadow-warm transition-shadow duration-200 group"
+                className="w-full text-left card-warm card-hover group"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
@@ -232,10 +270,10 @@ export default function JournalPage() {
         {deleteConfirm && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div
-              className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+              className="modal-overlay"
               onClick={() => setDeleteConfirm(null)}
             />
-            <div className="relative bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full">
+            <div className="modal-panel max-w-sm">
               <h3 className="font-semibold text-foreground mb-2">
                 Delete this entry?
               </h3>

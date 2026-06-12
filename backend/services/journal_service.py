@@ -3,6 +3,12 @@ My Bibi — Journal service
 
 MIRROR PRINCIPLE strictly enforced: every query filters by user_id.
 No endpoint in this service can return another user's entries.
+
+Phase 4: entries are encrypted at rest with a key derived from the
+author's password (utils/crypto.py). The key exists only in process
+memory after login — the self-hosting partner cannot casually read
+the other's journal, in the DB or in the vault markdown.
+A 423 response means "locked — log in again to unlock".
 """
 
 import logging
@@ -17,8 +23,71 @@ from sqlalchemy import text
 from config import settings
 from services.vault_service import save_journal_entry, delete_journal_file
 from utils.mirror_guard import assert_own_data_only
+from utils import crypto
 
 logger = logging.getLogger(__name__)
+
+
+def _locked_error() -> HTTPException:
+    return HTTPException(
+        status_code=423,
+        detail="Your journal is locked. Log in again to unlock it.",
+    )
+
+
+def _read_content(user_id: str, stored: str) -> str:
+    """
+    Decrypt stored content for its owner.
+    Legacy plaintext rows pass through unchanged.
+    """
+    if not crypto.is_encrypted(stored):
+        return stored
+    if not crypto.is_unlocked(user_id):
+        raise _locked_error()
+    try:
+        return crypto.decrypt_for_user(user_id, stored)
+    except crypto.InvalidToken:
+        logger.error("Journal entry failed to decrypt — key mismatch.")
+        raise HTTPException(
+            status_code=500,
+            detail="Entry could not be decrypted with your current password.",
+        )
+
+
+async def migrate_plaintext_entries(db: AsyncSession, user_id: str) -> int:
+    """
+    Encrypt any legacy plaintext entries for this user. Called right after
+    login, when the key is freshly unlocked. Returns count migrated.
+    """
+    if not crypto.is_unlocked(user_id):
+        return 0
+
+    result = await db.execute(
+        text("""
+            SELECT id, content_encrypted FROM journal_entries
+            WHERE user_id = :uid
+        """),
+        {"uid": user_id},
+    )
+    migrated = 0
+    for row in result.fetchall():
+        if not crypto.is_encrypted(row.content_encrypted):
+            await db.execute(
+                text("""
+                    UPDATE journal_entries SET content_encrypted = :content
+                    WHERE id = :id AND user_id = :uid
+                """),
+                {
+                    "content": crypto.encrypt_for_user(user_id, row.content_encrypted),
+                    "id": row.id,
+                    "uid": user_id,
+                },
+            )
+            migrated += 1
+    if migrated:
+        await db.commit()
+        logger.info(f"Encrypted {migrated} legacy journal entries for user {user_id[:8]}…")
+    return migrated
 
 
 async def get_entries(db: AsyncSession, user_id: str) -> list[dict]:
@@ -42,7 +111,7 @@ async def get_entries(db: AsyncSession, user_id: str) -> list[dict]:
             "id": row.id,
             "user_id": row.user_id,
             "title": row.title,
-            "content": row.content,
+            "content": _read_content(user_id, row.content),
             "is_shared": bool(row.is_shared),
             "created_at": row.created_at,
             "updated_at": row.updated_at,
@@ -58,16 +127,20 @@ async def create_entry(
     content: str,
 ) -> dict:
     """
-    Create a new journal entry. Saves to DB and writes a markdown file to vault.
+    Create a new journal entry. Saves encrypted to DB and writes an
+    encrypted markdown file to vault.
     """
     if not content.strip():
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Journal entry cannot be empty.",
         )
+    if not crypto.is_unlocked(user_id):
+        raise _locked_error()
 
     entry_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
+    stored = crypto.encrypt_for_user(user_id, content)
 
     await db.execute(
         text("""
@@ -78,25 +151,25 @@ async def create_entry(
             "id": entry_id,
             "uid": user_id,
             "title": title,
-            "content": content,
+            "content": stored,
             "now": now,
         },
     )
     await db.commit()
 
-    # Save markdown to vault
+    # Vault gets the CIPHERTEXT — the server owner cannot casually read it.
     try:
         await save_journal_entry(
             vault_path=settings.vault_path,
             user_id=user_id,
             entry_id=entry_id,
             title=title,
-            content=content,
+            content=stored,
             created_at=now,
+            encrypted=True,
         )
     except Exception as e:
         logger.error(f"Failed to write journal entry to vault: {e}")
-        # Don't fail the whole operation — DB is the source of truth
 
     return {
         "id": entry_id,
@@ -128,14 +201,14 @@ async def get_entry(db: AsyncSession, user_id: str, entry_id: str) -> dict:
     if not row:
         raise HTTPException(status_code=404, detail="Entry not found.")
 
-    # Mirror principle check
+    # Mirror principle check BEFORE any decryption attempt
     assert_own_data_only(user_id, row.user_id)
 
     return {
         "id": row.id,
         "user_id": row.user_id,
         "title": row.title,
-        "content": row.content,
+        "content": _read_content(user_id, row.content),
         "is_shared": bool(row.is_shared),
         "created_at": row.created_at,
         "updated_at": row.updated_at,
@@ -153,12 +226,14 @@ async def update_entry(
     Update a journal entry. Verifies ownership.
     MIRROR PRINCIPLE: only the author can edit their entry.
     """
-    # Fetch and verify ownership
     existing = await get_entry(db, user_id, entry_id)  # raises 403 if not owner
 
     new_title = title if title is not None else existing["title"]
     new_content = content if content is not None else existing["content"]
     now = datetime.now(timezone.utc).isoformat()
+
+    if not crypto.is_unlocked(user_id):
+        raise _locked_error()
 
     await db.execute(
         text("""
@@ -166,7 +241,13 @@ async def update_entry(
             SET title = :title, content_encrypted = :content, updated_at = :now
             WHERE id = :id AND user_id = :uid
         """),
-        {"title": new_title, "content": new_content, "now": now, "id": entry_id, "uid": user_id},
+        {
+            "title": new_title,
+            "content": crypto.encrypt_for_user(user_id, new_content),
+            "now": now,
+            "id": entry_id,
+            "uid": user_id,
+        },
     )
     await db.commit()
 
@@ -178,7 +259,6 @@ async def delete_entry(db: AsyncSession, user_id: str, entry_id: str) -> None:
     Delete a journal entry. Verifies ownership.
     Also deletes the markdown file from vault.
     """
-    # Verify ownership
     await get_entry(db, user_id, entry_id)  # raises 403 if not owner
 
     await db.execute(
@@ -187,7 +267,6 @@ async def delete_entry(db: AsyncSession, user_id: str, entry_id: str) -> None:
     )
     await db.commit()
 
-    # Delete from vault
     try:
         await delete_journal_file(settings.vault_path, user_id, entry_id)
     except Exception as e:

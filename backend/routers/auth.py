@@ -29,6 +29,7 @@ from services.auth_service import (
     hash_invite_token,
 )
 from config import settings
+from utils import crypto
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -148,8 +149,9 @@ async def setup(request: SetupRequest, db: AsyncSession = Depends(get_db)):
 
     await db.commit()
 
-    # Create JWT
+    # Create JWT + unlock the user's encryption key (Phase 4)
     access_token = create_access_token({"sub": user_id})
+    crypto.unlock_user(user_id, request.password)
     invite_link = f"{settings.frontend_url}/join?token={raw_token}"
 
     logger.info(f"First user registered: {request.email}")
@@ -255,6 +257,7 @@ async def join(request: JoinRequest, db: AsyncSession = Depends(get_db)):
     await db.commit()
 
     access_token = create_access_token({"sub": user_id})
+    crypto.unlock_user(user_id, request.password)
     logger.info(f"Partner joined: {request.email}")
 
     return TokenResponse(
@@ -297,6 +300,15 @@ async def login(
         )
 
     access_token = create_access_token({"sub": user.id})
+
+    # Phase 4: unlock this user's encryption key for journal/gift vault,
+    # and encrypt any legacy plaintext entries now that we can.
+    crypto.unlock_user(user.id, form_data.password)
+    try:
+        from services.journal_service import migrate_plaintext_entries
+        await migrate_plaintext_entries(db, user.id)
+    except Exception as e:
+        logger.warning(f"Journal migration skipped: {e}")
 
     return TokenResponse(
         access_token=access_token,

@@ -2,141 +2,387 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+/* ==========================================================================
+   Theme system
+   - Light & dark mode via .dark class on <html>
+   - Accent themes via data-accent on <html>: rose | ocean | lavender |
+     sunset | forest. Each defines the --brand-* scale used everywhere.
+   ========================================================================== */
 
 @layer base {
+  /* ----- Accent palettes (work in both light & dark) ----- */
+  :root,
+  [data-accent="rose"] {
+    --brand-50: 351 100% 97%;
+    --brand-100: 349 100% 94%;
+    --brand-200: 347 80% 89%;
+    --brand-300: 346 78% 81%;
+    --brand-400: 345 79% 71%;
+    --brand-500: 345 74% 60%;
+    --brand-600: 343 70% 50%;
+  }
+
+  /* Crimson — deep red, the colour of love */
+  [data-accent="crimson"] {
+    --brand-50: 0 86% 97%;
+    --brand-100: 0 93% 94%;
+    --brand-200: 0 96% 89%;
+    --brand-300: 0 91% 71%;
+    --brand-400: 0 84% 60%;
+    --brand-500: 0 72% 51%;
+    --brand-600: 0 74% 42%;
+  }
+
+  /* Midnight — steel blue, dark and quiet */
+  [data-accent="midnight"] {
+    --brand-50: 217 50% 96%;
+    --brand-100: 217 45% 91%;
+    --brand-200: 218 40% 83%;
+    --brand-300: 220 38% 62%;
+    --brand-400: 222 42% 50%;
+    --brand-500: 224 48% 40%;
+    --brand-600: 226 50% 32%;
+  }
+
+  [data-accent="ocean"] {
+    --brand-50: 199 100% 96%;
+    --brand-100: 199 94% 92%;
+    --brand-200: 199 92% 85%;
+    --brand-300: 199 85% 70%;
+    --brand-400: 200 80% 58%;
+    --brand-500: 201 80% 46%;
+    --brand-600: 202 80% 38%;
+  }
+
+  [data-accent="lavender"] {
+    --brand-50: 270 100% 97%;
+    --brand-100: 269 100% 94%;
+    --brand-200: 269 90% 89%;
+    --brand-300: 270 70% 79%;
+    --brand-400: 271 65% 68%;
+    --brand-500: 271 60% 56%;
+    --brand-600: 272 58% 47%;
+  }
+
+  [data-accent="sunset"] {
+    --brand-50: 33 100% 96%;
+    --brand-100: 34 100% 91%;
+    --brand-200: 32 98% 83%;
+    --brand-300: 31 95% 72%;
+    --brand-400: 27 90% 61%;
+    --brand-500: 25 85% 53%;
+    --brand-600: 22 82% 44%;
+  }
+
+  [data-accent="forest"] {
+    --brand-50: 138 50% 96%;
+    --brand-100: 140 45% 91%;
+    --brand-200: 141 40% 83%;
+    --brand-300: 142 35% 68%;
+    --brand-400: 143 35% 55%;
+    --brand-500: 145 40% 42%;
+    --brand-600: 146 42% 34%;
+  }
+
+  /* ----- Light mode surfaces ----- */
   :root {
     --background: 40 50% 98%;
     --foreground: 20 14% 18%;
+    --surface: 40 45% 96%;
     --card: 0 0% 100%;
     --card-foreground: 20 14% 18%;
     --popover: 0 0% 100%;
     --popover-foreground: 20 14% 18%;
-    --primary: 340 70% 75%;
+    --primary: var(--brand-300);
     --primary-foreground: 0 0% 100%;
     --secondary: 40 50% 95%;
     --secondary-foreground: 20 14% 18%;
-    --muted: 40 40% 96%;
-    --muted-foreground: 20 10% 55%;
+    --muted: 40 40% 94%;
+    --muted-foreground: 20 10% 50%;
     --accent: 140 25% 78%;
     --accent-foreground: 140 25% 20%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
     --border: 30 30% 90%;
-    --input: 30 30% 90%;
-    --ring: 340 70% 75%;
+    --input: 30 30% 88%;
+    --ring: var(--brand-300);
     --radius: 0.75rem;
+  }
+
+  /* ----- Dark mode surfaces (warm charcoal, not cold slate) ----- */
+  .dark {
+    --background: 20 14% 8%;
+    --foreground: 30 22% 91%;
+    --surface: 20 12% 11%;
+    --card: 20 13% 12%;
+    --card-foreground: 30 22% 91%;
+    --popover: 20 13% 13%;
+    --popover-foreground: 30 22% 91%;
+    --primary: var(--brand-300);
+    --primary-foreground: 20 14% 10%;
+    --secondary: 20 10% 16%;
+    --secondary-foreground: 30 22% 91%;
+    --muted: 20 10% 17%;
+    --muted-foreground: 25 10% 62%;
+    --accent: 140 18% 30%;
+    --accent-foreground: 140 25% 85%;
+    --destructive: 0 62% 52%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 20 10% 21%;
+    --input: 20 10% 23%;
+    --ring: var(--brand-300);
   }
 
   * {
     @apply border-border;
   }
 
-  body {
-    @apply bg-cream-100 text-foreground font-sans antialiased;
-    background-image: radial-gradient(
-      ellipse at top,
-      rgba(244, 167, 185, 0.06) 0%,
-      transparent 60%
-    );
-  }
-
-  /* Smooth scrolling */
   html {
     scroll-behavior: smooth;
   }
 
-  /* Better focus styles */
+  /* Text size variations — rem-based Tailwind sizes scale with these */
+  html[data-textsize="sm"] {
+    font-size: 14.5px;
+  }
+  html[data-textsize="md"] {
+    font-size: 16px;
+  }
+  html[data-textsize="lg"] {
+    font-size: 17.5px;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    background-image: radial-gradient(
+      ellipse at top,
+      hsl(var(--brand-300) / 0.07) 0%,
+      transparent 60%
+    );
+    transition: background-color 0.35s ease, color 0.35s ease;
+  }
+
   *:focus-visible {
-    @apply outline-none ring-2 ring-rose-300 ring-offset-2;
+    @apply outline-none ring-2 ring-brand-300 ring-offset-2 ring-offset-background;
+  }
+
+  ::selection {
+    background: hsl(var(--brand-200));
+    color: hsl(20 14% 18%);
   }
 }
 
+/* ==========================================================================
+   Components
+   ========================================================================== */
+
 @layer components {
-  /* Chat bubble styles */
+  /* Chat bubbles */
   .bubble-own {
-    @apply bg-rose-300 text-white rounded-3xl rounded-br-sm px-4 py-2.5 max-w-xs md:max-w-md shadow-soft;
+    @apply bg-brand-300 dark:bg-brand-400 text-white dark:text-[hsl(20,14%,10%)] rounded-3xl rounded-br-sm px-4 py-2.5 max-w-xs md:max-w-md shadow-soft;
   }
 
   .bubble-partner {
-    @apply bg-white text-foreground rounded-3xl rounded-bl-sm px-4 py-2.5 max-w-xs md:max-w-md shadow-card border border-border;
+    @apply bg-card text-foreground rounded-3xl rounded-bl-sm px-4 py-2.5 max-w-xs md:max-w-md shadow-card border border-border;
   }
 
-  /* Card styles */
+  /* Cards */
   .card-warm {
-    @apply bg-white rounded-2xl shadow-card border border-cream-200 p-5;
+    @apply bg-card text-card-foreground rounded-2xl shadow-card dark:shadow-card-dark border border-border p-5 transition-colors duration-300;
   }
 
-  /* Memory card */
+  .card-hover {
+    @apply transition-all duration-300 ease-spring hover:-translate-y-1 hover:shadow-warm;
+  }
+
   .memory-card {
-    @apply bg-white rounded-2xl shadow-card border border-cream-200 overflow-hidden hover:shadow-warm transition-shadow duration-200;
+    @apply bg-card rounded-2xl shadow-card dark:shadow-card-dark border border-border overflow-hidden transition-all duration-300 ease-spring hover:-translate-y-1 hover:shadow-warm;
   }
 
-  /* Input styles */
+  /* Inputs */
   .input-warm {
-    @apply w-full rounded-xl border border-cream-200 bg-white px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent transition-all duration-200;
+    @apply w-full rounded-xl border border-input bg-card px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-transparent transition-all duration-200;
   }
 
-  /* Button styles */
+  /* Buttons */
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-full bg-rose-300 px-6 py-2.5 text-sm font-medium text-white hover:bg-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:ring-offset-2 transition-all duration-200 shadow-soft disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center rounded-full bg-brand-300 dark:bg-brand-400 px-6 py-2.5 text-sm font-medium text-white dark:text-[hsl(20,14%,10%)] hover:bg-brand-400 dark:hover:bg-brand-300 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-brand-300 focus:ring-offset-2 focus:ring-offset-background transition-all duration-200 shadow-soft disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-full bg-cream-100 px-6 py-2.5 text-sm font-medium text-foreground border border-cream-200 hover:bg-cream-200 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center rounded-full bg-secondary px-6 py-2.5 text-sm font-medium text-secondary-foreground border border-border hover:bg-muted active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-brand-300 focus:ring-offset-2 focus:ring-offset-background transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-cream-100 focus:outline-none focus:ring-2 focus:ring-rose-300 transition-all duration-200;
+    @apply inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-brand-300 transition-all duration-200;
   }
 
-  /* Sidebar nav item */
+  /* Sidebar nav */
   .nav-item {
-    @apply flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-cream-100 transition-all duration-150;
+    @apply flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200;
   }
 
   .nav-item.active {
-    @apply text-rose-500 bg-rose-50;
+    @apply text-brand-500 dark:text-brand-300 bg-brand-50 dark:bg-brand-500/15;
   }
 
-  /* Page heading */
+  .nav-section {
+    @apply px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70;
+  }
+
+  /* Page heading — display serif for warmth */
   .page-title {
-    @apply text-2xl font-semibold text-foreground tracking-tight;
+    @apply font-display text-[1.65rem] font-semibold text-foreground tracking-tight;
   }
 
-  /* Subtle divider */
+  /* Handwritten accent (letters, quotes, captions) */
+  .text-hand {
+    @apply font-hand text-[1.35em] leading-snug;
+  }
+
+  /* Soft tinted chips/sections */
+  .tint-brand {
+    @apply bg-brand-50 dark:bg-brand-500/10 border border-brand-100 dark:border-brand-500/20;
+  }
+
+  .tint-positive {
+    @apply bg-sage-50 dark:bg-sage-500/10 border border-sage-100 dark:border-sage-500/20;
+  }
+
   .divider {
-    @apply border-t border-cream-200 my-6;
+    @apply border-t border-border my-6;
+  }
+
+  /* Skeleton shimmer */
+  .skeleton {
+    @apply rounded-2xl bg-muted relative overflow-hidden;
+  }
+  .skeleton::after {
+    content: "";
+    @apply absolute inset-0 animate-shimmer;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsl(var(--brand-300) / 0.08),
+      transparent
+    );
+    background-size: 400px 100%;
+  }
+
+  /* Modal scaffolding */
+  .modal-overlay {
+    @apply absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm animate-fade-in;
+  }
+  .modal-panel {
+    @apply relative w-full max-w-lg bg-card text-card-foreground rounded-3xl shadow-2xl p-6 animate-pop-in border border-border;
   }
 }
 
+/* ==========================================================================
+   Utilities
+   ========================================================================== */
+
 @layer utilities {
-  /* Text gradient */
-  .text-gradient-rose {
-    @apply bg-gradient-to-r from-rose-400 to-rose-500 bg-clip-text text-transparent;
+  .text-gradient-brand {
+    @apply bg-gradient-to-r from-brand-400 to-brand-500 bg-clip-text text-transparent;
   }
 
-  /* Fade in animation helper */
+  .bg-aurora {
+    background: linear-gradient(
+      120deg,
+      hsl(var(--brand-100) / 0.6),
+      hsl(var(--background)),
+      hsl(var(--brand-50) / 0.8),
+      hsl(var(--background))
+    );
+    background-size: 300% 300%;
+    @apply animate-gradient-pan;
+  }
+
   .animate-in {
     @apply animate-fade-in;
   }
 
-  /* Scrollbar styling */
+  /* Staggered children entrance (apply to a parent) */
+  .stagger-children > * {
+    opacity: 0;
+    animation: slide-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .stagger-children > *:nth-child(1) { animation-delay: 0.03s; }
+  .stagger-children > *:nth-child(2) { animation-delay: 0.08s; }
+  .stagger-children > *:nth-child(3) { animation-delay: 0.13s; }
+  .stagger-children > *:nth-child(4) { animation-delay: 0.18s; }
+  .stagger-children > *:nth-child(5) { animation-delay: 0.23s; }
+  .stagger-children > *:nth-child(6) { animation-delay: 0.28s; }
+  .stagger-children > *:nth-child(7) { animation-delay: 0.33s; }
+  .stagger-children > *:nth-child(8) { animation-delay: 0.38s; }
+  .stagger-children > *:nth-child(9) { animation-delay: 0.43s; }
+  .stagger-children > *:nth-child(n + 10) { animation-delay: 0.48s; }
+
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: rgba(244, 167, 185, 0.4) transparent;
+    scrollbar-color: hsl(var(--brand-300) / 0.4) transparent;
   }
-
   .scrollbar-thin::-webkit-scrollbar {
     width: 4px;
+    height: 4px;
   }
-
   .scrollbar-thin::-webkit-scrollbar-track {
     background: transparent;
   }
-
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: rgba(244, 167, 185, 0.4);
+    background-color: hsl(var(--brand-300) / 0.4);
     border-radius: 9999px;
+  }
+}
+
+/* ASCII heart particles (auth background) */
+.ascii-heart {
+  position: absolute;
+  bottom: -5vh;
+  animation-name: ascii-rise;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes ascii-rise {
+  0% {
+    transform: translateY(0) rotate(-8deg) scale(0.8);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.8;
+  }
+  60% {
+    transform: translateY(-60vh) rotate(8deg) scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(-110vh) rotate(-6deg) scale(1.15);
+    opacity: 0;
+  }
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Scrapbook print → PDF export */
+@media print {
+  .print-hidden {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+  }
+  .print-page {
+    break-inside: avoid;
   }
 }

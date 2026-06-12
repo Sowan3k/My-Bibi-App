@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Heart, Eye, EyeOff, Copy, Check } from "lucide-react";
 import api from "@/lib/api";
+import { AuthAppearanceCorner } from "@/components/ThemeControls";
+import AsciiCoupleBackground from "@/components/AsciiCoupleBackground";
 
 interface SetupResponse {
   access_token: string;
@@ -65,26 +67,28 @@ export default function SetupPage() {
 
   if (done) {
     return (
-      <main className="min-h-screen flex items-center justify-center px-6 py-12">
-        <div className="w-full max-w-md animate-slide-up">
+      <main className="min-h-screen bg-background flex items-center justify-center px-6 py-12 relative overflow-hidden">
+        <AsciiCoupleBackground />
+        <AuthAppearanceCorner />
+        <div className="w-full max-w-md animate-slide-up relative z-10">
           <div className="card-warm text-center">
-            <div className="inline-flex w-14 h-14 rounded-full bg-sage-100 items-center justify-center mb-4">
-              <Check className="w-7 h-7 text-sage-500" />
+            <div className="inline-flex w-14 h-14 rounded-full bg-sage-100 dark:bg-sage-500/20 items-center justify-center mb-4 animate-pop-in">
+              <Check className="w-7 h-7 text-sage-500 dark:text-sage-300" />
             </div>
-            <h1 className="text-2xl font-semibold text-foreground mb-2">
+            <h1 className="font-display text-2xl font-semibold text-foreground mb-2">
               You're all set, {done.user.name}! 🎉
             </h1>
             <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
               Send this invite link to your partner. It can only be used once.
             </p>
 
-            <div className="bg-cream-100 rounded-xl p-3 flex items-center gap-3 mb-6 text-left">
+            <div className="bg-muted rounded-xl p-3 flex items-center gap-3 mb-6 text-left">
               <p className="text-xs font-mono text-foreground break-all flex-1">
                 {done.invite_link}
               </p>
               <button
                 onClick={copyInvite}
-                className="flex-shrink-0 p-2 rounded-lg hover:bg-cream-200 transition-colors"
+                className="flex-shrink-0 p-2 rounded-lg hover:bg-secondary transition-colors"
                 title="Copy invite link"
               >
                 {copied ? (
@@ -113,14 +117,19 @@ export default function SetupPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-6 py-12">
-      <div className="w-full max-w-md animate-slide-up">
+    <main className="min-h-screen bg-background flex items-center justify-center px-6 py-12 relative overflow-hidden">
+      <AsciiCoupleBackground />
+      <AuthAppearanceCorner />
+      <div className="w-full max-w-md animate-slide-up relative z-10">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex w-12 h-12 rounded-full bg-rose-100 items-center justify-center mb-4">
-            <Heart className="w-6 h-6 text-rose-400" fill="currentColor" />
+          <div className="inline-flex w-14 h-14 rounded-full bg-brand-100 dark:bg-brand-500/20 items-center justify-center mb-4 shadow-soft">
+            <Heart
+              className="w-7 h-7 text-brand-400 animate-heartbeat"
+              fill="currentColor"
+            />
           </div>
-          <h1 className="text-3xl font-semibold text-foreground mb-2">
+          <h1 className="font-display text-3xl font-semibold text-foreground mb-2">
             Set up My Bibi
           </h1>
           <p className="text-muted-foreground text-sm">
@@ -194,7 +203,7 @@ export default function SetupPage() {
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3">
+              <div className="bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 text-red-600 dark:text-red-400 text-sm rounded-xl px-4 py-3 animate-fade-in">
                 {error}
               </div>
             )}
@@ -214,7 +223,7 @@ export default function SetupPage() {
             Already have an account?{" "}
             <Link
               href="/login"
-              className="text-rose-400 hover:text-rose-500 font-medium transition-colors"
+              className="text-brand-400 hover:text-brand-500 font-medium transition-colors"
             >
               Log in
             </Link>

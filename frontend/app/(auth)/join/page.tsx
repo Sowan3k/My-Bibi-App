@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Heart, Eye, EyeOff, AlertCircle } from "lucide-react";
 import api from "@/lib/api";
+import { AuthAppearanceCorner } from "@/components/ThemeControls";
+import AsciiCoupleBackground from "@/components/AsciiCoupleBackground";
 
 export default function JoinPage() {
   const router = useRouter();
@@ -70,12 +72,17 @@ export default function JoinPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-6 py-12">
-      <div className="w-full max-w-md animate-slide-up">
+    <main className="min-h-screen bg-background flex items-center justify-center px-6 py-12 relative overflow-hidden">
+      <AsciiCoupleBackground />
+      <AuthAppearanceCorner />
+      <div className="w-full max-w-md animate-slide-up relative z-10">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex w-12 h-12 rounded-full bg-rose-100 items-center justify-center mb-4">
-            <Heart className="w-6 h-6 text-rose-400" fill="currentColor" />
+          <div className="inline-flex w-14 h-14 rounded-full bg-brand-100 dark:bg-brand-500/20 items-center justify-center mb-4 shadow-soft">
+            <Heart
+              className="w-7 h-7 text-brand-400 animate-heartbeat"
+              fill="currentColor"
+            />
           </div>
           <h1 className="text-3xl font-semibold text-foreground mb-2">
             Join My Bibi
@@ -190,7 +197,7 @@ export default function JoinPage() {
             Already have an account?{" "}
             <Link
               href="/login"
-              className="text-rose-400 hover:text-rose-500 font-medium transition-colors"
+              className="text-brand-400 hover:text-brand-500 font-medium transition-colors"
             >
               Log in
             </Link>

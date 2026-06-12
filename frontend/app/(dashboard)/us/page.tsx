@@ -1,10 +1,18 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Send, Mic, Image as ImageIcon, Square, Smile } from "lucide-react";
+import {
+  Send,
+  Mic,
+  Image as ImageIcon,
+  Square,
+  Paperclip,
+  FileText,
+  ExternalLink,
+} from "lucide-react";
 import api from "@/lib/api";
 import type { Message, User } from "@/lib/types";
-import { formatDistanceToNow, format, isToday, isYesterday } from "date-fns";
+import { format, isToday, isYesterday } from "date-fns";
 
 function formatMessageTime(dateStr: string): string {
   const d = new Date(dateStr);
@@ -34,6 +42,77 @@ function groupMessagesByDate(messages: Message[]) {
   return groups;
 }
 
+const URL_RE = /(https?:\/\/[^\s<]+)/;
+
+function extractUrl(text: string | null): string | null {
+  if (!text) return null;
+  const m = text.match(URL_RE);
+  return m ? m[1] : null;
+}
+
+interface Preview {
+  url: string;
+  title: string | null;
+  description: string | null;
+  image_url: string | null;
+  site_name: string | null;
+}
+
+/** Rich link preview card (OpenGraph, fetched + cached server-side). */
+function LinkPreview({ url }: { url: string }) {
+  const [preview, setPreview] = useState<Preview | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .get<Preview>("/api/links/preview", { params: { url } })
+      .then((r) => {
+        if (!cancelled && (r.data.title || r.data.image_url)) {
+          setPreview(r.data);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [url]);
+
+  if (!preview) return null;
+
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block mt-1 rounded-2xl overflow-hidden border border-border bg-card hover:bg-muted transition-colors max-w-xs animate-fade-in"
+    >
+      {preview.image_url && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={preview.image_url}
+          alt=""
+          className="w-full h-32 object-cover"
+          loading="lazy"
+        />
+      )}
+      <div className="p-3">
+        <p className="text-xs font-medium text-foreground line-clamp-2">
+          {preview.title || url}
+        </p>
+        {preview.description && (
+          <p className="text-[11px] text-muted-foreground line-clamp-2 mt-1">
+            {preview.description}
+          </p>
+        )}
+        <p className="text-[10px] text-muted-foreground mt-1.5 flex items-center gap-1">
+          <ExternalLink className="w-3 h-3" />
+          {preview.site_name || new URL(url).hostname}
+        </p>
+      </div>
+    </a>
+  );
+}
+
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [me, setMe] = useState<User | null>(null);
@@ -44,6 +123,7 @@ export default function ChatPage() {
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const lastMessageId = useRef<string | null>(null);
@@ -52,12 +132,10 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
-  // Fetch current user
   useEffect(() => {
     api.get<User>("/api/auth/me").then((r) => setMe(r.data)).catch(() => {});
   }, []);
 
-  // Load messages
   const fetchMessages = useCallback(async () => {
     try {
       const res = await api.get<Message[]>("/api/chat/messages", {
@@ -65,7 +143,6 @@ export default function ChatPage() {
       });
       const newMessages = res.data;
 
-      // Only update if something changed
       const latestId = newMessages[newMessages.length - 1]?.id;
       if (latestId !== lastMessageId.current) {
         lastMessageId.current = latestId ?? null;
@@ -79,7 +156,6 @@ export default function ChatPage() {
 
   useEffect(() => {
     fetchMessages();
-    // Poll every 3 seconds for new messages
     pollingRef.current = setInterval(fetchMessages, 3000);
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
@@ -92,8 +168,8 @@ export default function ChatPage() {
 
     setText("");
     setSending(true);
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
 
-    // Optimistic update
     const tempMsg: Message = {
       id: `temp-${Date.now()}`,
       sender_id: me?.id ?? "",
@@ -110,11 +186,9 @@ export default function ChatPage() {
 
     try {
       await api.post("/api/chat/messages", { content, media_type: null });
-      // Real message will come in via polling
     } catch {
-      // Remove optimistic message on failure
       setMessages((prev) => prev.filter((m) => m.id !== tempMsg.id));
-      setText(content); // restore text
+      setText(content);
     } finally {
       setSending(false);
     }
@@ -127,30 +201,34 @@ export default function ChatPage() {
     }
   };
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const uploadFile = async (file: File, mediaType: "photo" | "file") => {
     setUploadingMedia(true);
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("media_type", "photo");
-
-      const res = await api.post<{ media_path: string; message_id: string }>(
-        "/api/chat/media",
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
-
-      // Photo was sent as a message — reload messages
+      formData.append("media_type", mediaType);
+      await api.post("/api/chat/media", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      lastMessageId.current = null; // force refresh
       await fetchMessages();
     } catch (err) {
       console.error("Upload failed", err);
     } finally {
       setUploadingMedia(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
     }
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) await uploadFile(file, "photo");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) await uploadFile(file, "file");
+    if (docInputRef.current) docInputRef.current.value = "";
   };
 
   const startRecording = async () => {
@@ -171,6 +249,7 @@ export default function ChatPage() {
           await api.post("/api/chat/media", formData, {
             headers: { "Content-Type": "multipart/form-data" },
           });
+          lastMessageId.current = null;
           await fetchMessages();
         } catch (err) {
           console.error("Voice upload failed", err);
@@ -202,9 +281,9 @@ export default function ChatPage() {
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4 space-y-1">
         {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center py-16">
-            <div className="text-4xl mb-3">💌</div>
-            <p className="text-lg font-medium text-foreground mb-1">
+          <div className="flex flex-col items-center justify-center h-full text-center py-16 animate-fade-in">
+            <div className="text-5xl mb-4 animate-float">💌</div>
+            <p className="font-display text-xl font-medium text-foreground mb-1">
               Your space is ready
             </p>
             <p className="text-sm text-muted-foreground max-w-xs">
@@ -217,27 +296,28 @@ export default function ChatPage() {
           <div key={group.date}>
             {/* Date separator */}
             <div className="flex items-center gap-3 my-4">
-              <div className="flex-1 h-px bg-cream-200" />
+              <div className="flex-1 h-px bg-border" />
               <span className="text-xs text-muted-foreground px-2">
                 {group.date}
               </span>
-              <div className="flex-1 h-px bg-cream-200" />
+              <div className="flex-1 h-px bg-border" />
             </div>
 
             {group.messages.map((msg) => {
               const isMine = msg.is_mine || msg.sender_id === me?.id;
+              const url = extractUrl(msg.content);
               return (
                 <div
                   key={msg.id}
                   className={`flex mb-2 ${
                     isMine ? "justify-end" : "justify-start"
-                  }`}
+                  } ${msg.id.startsWith("temp-") ? "" : "animate-fade-in"}`}
                 >
                   <div className="max-w-xs md:max-w-md space-y-0.5">
-                    {/* Media */}
+                    {/* Photo */}
                     {msg.media_type === "photo" && msg.media_path && (
                       <div
-                        className={`rounded-2xl overflow-hidden ${
+                        className={`rounded-2xl overflow-hidden shadow-card ${
                           isMine ? "rounded-br-sm" : "rounded-bl-sm"
                         }`}
                       >
@@ -247,26 +327,47 @@ export default function ChatPage() {
                             msg.media_path
                           )}`}
                           alt="Shared photo"
-                          className="max-w-[240px] max-h-[300px] object-cover"
+                          className="max-w-[240px] max-h-[300px] object-cover hover:scale-[1.02] transition-transform duration-300"
+                          loading="lazy"
                         />
                       </div>
                     )}
 
+                    {/* Voice note */}
                     {msg.media_type === "voice" && msg.media_path && (
                       <div
                         className={`${
                           isMine ? "bubble-own" : "bubble-partner"
                         } flex items-center gap-2`}
                       >
-                        <Mic className="w-4 h-4 opacity-70" />
+                        <Mic className="w-4 h-4 opacity-70 flex-shrink-0" />
                         <audio
                           controls
                           src={`/api/chat/media/${encodeURIComponent(
                             msg.media_path
                           )}`}
-                          className="h-6 max-w-[180px]"
+                          className="h-8 max-w-[180px]"
                         />
                       </div>
+                    )}
+
+                    {/* Shared file */}
+                    {msg.media_type === "file" && msg.media_path && (
+                      <a
+                        href={`/api/chat/media/${encodeURIComponent(
+                          msg.media_path
+                        )}`}
+                        download
+                        className={`${
+                          isMine ? "bubble-own" : "bubble-partner"
+                        } flex items-center gap-2.5 hover:opacity-90 transition-opacity`}
+                      >
+                        <FileText className="w-5 h-5 opacity-80 flex-shrink-0" />
+                        <span className="text-sm underline underline-offset-2 break-all">
+                          {msg.media_path.split("-").slice(2).join("-") ||
+                            "Shared file"}
+                        </span>
+                      </a>
                     )}
 
                     {/* Text */}
@@ -281,6 +382,9 @@ export default function ChatPage() {
                         </p>
                       </div>
                     )}
+
+                    {/* Link preview for the first URL */}
+                    {url && <LinkPreview url={url} />}
 
                     {/* Timestamp */}
                     <p
@@ -301,7 +405,7 @@ export default function ChatPage() {
       </div>
 
       {/* Input area */}
-      <div className="border-t border-cream-200 bg-white px-4 py-3">
+      <div className="border-t border-border bg-card px-4 py-3 transition-colors duration-300">
         {uploadingMedia && (
           <div className="text-xs text-muted-foreground mb-2 animate-pulse">
             Uploading…
@@ -309,7 +413,7 @@ export default function ChatPage() {
         )}
 
         {recording && (
-          <div className="flex items-center gap-2 mb-2 text-sm text-red-500">
+          <div className="flex items-center gap-2 mb-2 text-sm text-red-500 animate-fade-in">
             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
             Recording… tap stop when done
           </div>
@@ -317,7 +421,7 @@ export default function ChatPage() {
 
         <div className="flex items-end gap-2">
           {/* Media buttons */}
-          <div className="flex gap-1 flex-shrink-0">
+          <div className="flex gap-0.5 flex-shrink-0">
             <input
               ref={fileInputRef}
               type="file"
@@ -325,14 +429,31 @@ export default function ChatPage() {
               className="hidden"
               onChange={handlePhotoUpload}
             />
+            <input
+              ref={docInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx,.txt,.zip,.mp4"
+              className="hidden"
+              onChange={handleDocUpload}
+            />
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={recording || uploadingMedia}
-              className="p-2.5 rounded-xl hover:bg-cream-100 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
+              className="p-2.5 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
               title="Send photo"
             >
               <ImageIcon className="w-5 h-5" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => docInputRef.current?.click()}
+              disabled={recording || uploadingMedia}
+              className="p-2.5 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40 hidden sm:block"
+              title="Share a file"
+            >
+              <Paperclip className="w-5 h-5" />
             </button>
 
             <button
@@ -341,8 +462,8 @@ export default function ChatPage() {
               disabled={uploadingMedia}
               className={`p-2.5 rounded-xl transition-colors disabled:opacity-40 ${
                 recording
-                  ? "bg-red-100 text-red-500 hover:bg-red-200"
-                  : "hover:bg-cream-100 text-muted-foreground hover:text-foreground"
+                  ? "bg-red-100 dark:bg-red-500/20 text-red-500 hover:bg-red-200 animate-glow-pulse"
+                  : "hover:bg-muted text-muted-foreground hover:text-foreground"
               }`}
               title={recording ? "Stop recording" : "Record voice note"}
             >
@@ -376,14 +497,14 @@ export default function ChatPage() {
             type="button"
             onClick={sendMessage}
             disabled={!text.trim() || sending}
-            className="p-2.5 rounded-xl bg-rose-300 text-white hover:bg-rose-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+            className="p-2.5 rounded-xl bg-brand-300 dark:bg-brand-400 text-white dark:text-[hsl(20,14%,10%)] hover:bg-brand-400 dark:hover:bg-brand-300 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex-shrink-0"
             title="Send"
           >
             <Send className="w-5 h-5" />
           </button>
         </div>
 
-        <p className="text-xs text-muted-foreground text-center mt-2">
+        <p className="text-xs text-muted-foreground text-center mt-2 hidden sm:block">
           Enter to send · Shift+Enter for new line
         </p>
       </div>

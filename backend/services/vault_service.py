@@ -116,14 +116,15 @@ async def save_journal_entry(
     title: str | None,
     content: str,
     created_at: str,
+    encrypted: bool = False,
 ) -> str:
     """
     Save a journal entry as a markdown file in vault/journal/{user_id}/.
     Returns the relative path of the saved file.
 
-    NOTE: In Phase 4, content will be encrypted before writing.
-    Currently stored as plaintext — Phase 4 will add per-user encryption
-    with a key derived from the user's password.
+    Phase 4: `content` arrives as ciphertext (enc:v1:…) and is written
+    as-is with `encrypted: true` frontmatter. The vault never holds the
+    plaintext of a private entry — the server owner cannot casually read it.
     """
     user_dir = os.path.join(vault_path, "journal", user_id)
     os.makedirs(user_dir, exist_ok=True)
@@ -140,15 +141,20 @@ async def save_journal_entry(
     filepath = os.path.join(user_dir, filename)
 
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    body = content if not encrypted else (
+        "> This entry is encrypted with a key derived from its author's password.\n"
+        "> Only the author can read it inside the app.\n\n"
+        "```\n" + content + "\n```"
+    )
     md_content = f"""---
 id: {entry_id}
 created_at: {created_at}
 updated_at: {now}
 private: true
-encrypted: false
+encrypted: {str(encrypted).lower()}
 ---
 
-{f"# {title}" + chr(10) + chr(10) if title else ""}{content}
+{f"# {title}" + chr(10) + chr(10) if title else ""}{body}
 """
 
     async with aiofiles.open(filepath, "w", encoding="utf-8") as f:

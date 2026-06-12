@@ -1,7 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Search, Calendar, Image as ImageIcon, X, Sparkles } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Calendar,
+  Image as ImageIcon,
+  X,
+  Sparkles,
+} from "lucide-react";
 import api from "@/lib/api";
 import type { Memory } from "@/lib/types";
 import { format, parseISO } from "date-fns";
@@ -17,12 +24,15 @@ function MemoryCard({ memory }: { memory: Memory }) {
   return (
     <div className="memory-card group">
       {memory.media_path && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={`/api/chat/media/${encodeURIComponent(memory.media_path)}`}
-          alt={memory.title}
-          className="w-full h-40 object-cover"
-        />
+        <div className="overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={`/api/chat/media/${encodeURIComponent(memory.media_path)}`}
+            alt={memory.title}
+            className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-500 ease-spring"
+            loading="lazy"
+          />
+        </div>
       )}
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-2">
@@ -101,18 +111,15 @@ function SaveMemoryModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
-      <div
-        className="absolute inset-0 bg-black/30 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl p-6 animate-slide-up">
+      <div className="modal-overlay" onClick={onClose} />
+      <div className="modal-panel">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-semibold text-foreground">
+          <h2 className="font-display text-lg font-semibold text-foreground">
             Save a moment ✨
           </h2>
           <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-cream-100 text-muted-foreground transition-colors"
+            className="p-2 rounded-full hover:bg-muted text-muted-foreground transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -182,7 +189,7 @@ function SaveMemoryModal({
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3">
+            <div className="bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 text-red-600 dark:text-red-400 text-sm rounded-xl px-4 py-3 animate-fade-in">
               {error}
             </div>
           )}
@@ -237,10 +244,10 @@ export default function MemoryGardenPage() {
   return (
     <div className="p-5 max-w-4xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 gap-3">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-rose-300" />
+            <Sparkles className="w-6 h-6 text-brand-300" />
             Memory Garden
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
@@ -249,10 +256,11 @@ export default function MemoryGardenPage() {
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="btn-primary flex items-center gap-2"
+          className="btn-primary flex items-center gap-2 flex-shrink-0"
         >
           <Plus className="w-4 h-4" />
-          Save a moment
+          <span className="hidden sm:inline">Save a moment</span>
+          <span className="sm:hidden">Save</span>
         </button>
       </div>
 
@@ -270,9 +278,9 @@ export default function MemoryGardenPage() {
 
       {/* On This Day */}
       {onThisDay.length > 0 && !search && (
-        <section className="mb-8">
+        <section className="mb-8 animate-fade-in">
           <div className="flex items-center gap-2 mb-3">
-            <Calendar className="w-4 h-4 text-rose-300" />
+            <Calendar className="w-4 h-4 text-brand-300" />
             <h2 className="text-sm font-semibold text-foreground">
               On this day
             </h2>
@@ -280,7 +288,7 @@ export default function MemoryGardenPage() {
               — from past years
             </span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
             {onThisDay.map((m) => (
               <MemoryCard key={m.id} memory={m} />
             ))}
@@ -293,16 +301,13 @@ export default function MemoryGardenPage() {
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
-            <div
-              key={i}
-              className="h-40 rounded-2xl bg-cream-200 animate-pulse"
-            />
+            <div key={i} className="h-40 skeleton" />
           ))}
         </div>
       ) : memories.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="text-4xl mb-3">🌱</div>
-          <p className="text-lg font-medium text-foreground mb-1">
+        <div className="text-center py-16 animate-fade-in">
+          <div className="text-5xl mb-4 animate-float">🌱</div>
+          <p className="font-display text-xl font-medium text-foreground mb-1">
             {search ? "No memories found" : "Your garden is empty"}
           </p>
           <p className="text-sm text-muted-foreground max-w-xs mx-auto">
@@ -320,7 +325,7 @@ export default function MemoryGardenPage() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
           {memories.map((m) => (
             <MemoryCard key={m.id} memory={m} />
           ))}

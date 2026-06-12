@@ -1,7 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { Heart, Lock, MessageCircle, BookOpen, Flower2, Sparkles } from "lucide-react";
+import {
+  Heart,
+  Lock,
+  MessageCircle,
+  BookOpen,
+  Flower2,
+  Sparkles,
+  Hourglass,
+  Mail,
+  Music,
+  Star,
+  Map,
+  Gift,
+} from "lucide-react";
+import { AuthAppearanceCorner } from "@/components/ThemeControls";
 
 const features = [
   {
@@ -20,9 +34,39 @@ const features = [
     description: "One shared prompt per day, revealed only when both reply.",
   },
   {
+    icon: Hourglass,
+    title: "Time Capsules",
+    description: "Seal a message until a future date. No early peeking.",
+  },
+  {
+    icon: Mail,
+    title: "Letters",
+    description: "Slow messages, delivered on the day you choose.",
+  },
+  {
+    icon: Star,
+    title: "Future Dreams",
+    description: "A shared board of goals, step by step, together.",
+  },
+  {
+    icon: Music,
+    title: "Our Songs",
+    description: "The playlist of your story, with the notes behind it.",
+  },
+  {
     icon: BookOpen,
     title: "My Pages",
     description: "A private journal that's yours alone. Encrypted, always.",
+  },
+  {
+    icon: Gift,
+    title: "Gift Vault",
+    description: "Your private wishlist. Encrypted — even on your own server.",
+  },
+  {
+    icon: Map,
+    title: "Garden Map",
+    description: "Your whole story as a garden you can walk through.",
   },
   {
     icon: Heart,
@@ -32,34 +76,58 @@ const features = [
   {
     icon: Lock,
     title: "Your data. Your server.",
-    description: "No cloud. No tracking. No third parties.",
+    description: "No cloud. No tracking. No third parties. Local AI only.",
   },
 ];
 
 export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-gradient-to-br from-cream-100 via-white to-rose-50 flex flex-col">
+    <main className="min-h-screen bg-aurora flex flex-col relative overflow-hidden">
+      {/* Floating decorative hearts */}
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        <Heart
+          className="absolute top-[12%] left-[8%] w-6 h-6 text-brand-200 animate-float"
+          fill="currentColor"
+        />
+        <Heart
+          className="absolute top-[22%] right-[12%] w-4 h-4 text-brand-300/60 animate-float [animation-delay:1.2s]"
+          fill="currentColor"
+        />
+        <Heart
+          className="absolute bottom-[28%] left-[14%] w-5 h-5 text-brand-200/70 animate-float [animation-delay:2.1s]"
+          fill="currentColor"
+        />
+        <Sparkles className="absolute top-[35%] left-[28%] w-4 h-4 text-brand-300/50 animate-twinkle" />
+        <Sparkles className="absolute bottom-[20%] right-[20%] w-5 h-5 text-brand-300/40 animate-twinkle [animation-delay:0.8s]" />
+      </div>
+
+      {/* Theme + colour picker — works before login, choice is remembered */}
+      <AuthAppearanceCorner />
+
       {/* Hero */}
-      <section className="flex-1 flex flex-col items-center justify-center px-6 py-16 text-center">
-        <div className="mb-6 inline-flex items-center justify-center w-16 h-16 rounded-full bg-rose-100 shadow-soft">
-          <Heart className="w-8 h-8 text-rose-400" fill="currentColor" />
+      <section className="flex-1 flex flex-col items-center justify-center px-6 py-16 text-center relative z-[1]">
+        <div className="mb-6 inline-flex items-center justify-center w-20 h-20 rounded-full bg-brand-100 dark:bg-brand-500/20 shadow-warm animate-pop-in">
+          <Heart
+            className="w-10 h-10 text-brand-400 animate-heartbeat"
+            fill="currentColor"
+          />
         </div>
 
-        <h1 className="text-5xl md:text-6xl font-semibold text-foreground tracking-tight mb-4">
+        <h1 className="font-display text-6xl md:text-7xl font-semibold text-foreground tracking-tight mb-4 animate-slide-up">
           My Bibi
-          <span className="text-rose-300 ml-2">❤️</span>
+          <span className="text-brand-300 ml-3">❤️</span>
         </h1>
 
-        <p className="text-xl text-muted-foreground max-w-md mx-auto mb-10 leading-relaxed">
+        <p className="text-xl text-muted-foreground max-w-md mx-auto mb-10 leading-relaxed animate-slide-up [animation-delay:0.1s] opacity-0 [animation-fill-mode:forwards]">
           A private space for two.
           <br />
           Self-hosted, open source, always yours.
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-3 justify-center mb-16">
+        <div className="flex flex-col sm:flex-row gap-3 justify-center mb-16 animate-slide-up [animation-delay:0.2s] opacity-0 [animation-fill-mode:forwards]">
           <Link
             href="/setup"
-            className="btn-primary text-base px-8 py-3 rounded-2xl shadow-warm"
+            className="btn-primary text-base px-8 py-3 rounded-2xl shadow-warm hover:shadow-glow"
           >
             Set up your instance
           </Link>
@@ -78,14 +146,14 @@ export default function LandingPage() {
         </div>
 
         {/* Features grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-2xl mx-auto mb-16">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-w-4xl mx-auto mb-16 stagger-children">
           {features.map((f) => (
             <div
               key={f.title}
-              className="card-warm flex flex-col items-start gap-2 text-left"
+              className="card-warm card-hover flex flex-col items-start gap-2 text-left"
             >
-              <div className="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center">
-                <f.icon className="w-4 h-4 text-rose-400" />
+              <div className="w-9 h-9 rounded-xl bg-brand-50 dark:bg-brand-500/15 flex items-center justify-center">
+                <f.icon className="w-4.5 h-4.5 w-[18px] h-[18px] text-brand-400" />
               </div>
               <p className="text-sm font-medium text-foreground">{f.title}</p>
               <p className="text-xs text-muted-foreground leading-relaxed">
@@ -96,7 +164,7 @@ export default function LandingPage() {
         </div>
 
         {/* Ethics quote */}
-        <blockquote className="max-w-xl mx-auto border-l-4 border-rose-200 pl-5 py-1 text-left">
+        <blockquote className="max-w-xl mx-auto border-l-4 border-brand-200 dark:border-brand-500/40 pl-5 py-1 text-left animate-fade-in">
           <p className="text-sm text-muted-foreground italic leading-relaxed">
             "This app will never message your partner for you, never read your
             partner's mood for you, and never score your relationship. It
@@ -112,11 +180,11 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="text-center py-6 text-xs text-muted-foreground border-t border-cream-200">
+      <footer className="text-center py-6 text-xs text-muted-foreground border-t border-border relative z-[1]">
         <p>
           MIT License · Self-hosted · No telemetry · No cloud ·{" "}
           <a
-            href="https://github.com/yourusername/my-bibi-app"
+            href="https://github.com/Sowan3k/My-Bibi-App"
             className="underline hover:text-foreground transition-colors"
             target="_blank"
             rel="noopener noreferrer"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -9,45 +9,64 @@ import {
   Flower2,
   BookOpen,
   Heart,
-  Settings,
   LogOut,
   Menu,
   X,
+  Hourglass,
+  Mail,
+  Star,
+  Music,
+  CalendarDays,
+  Album,
+  Map,
+  Lightbulb,
+  Gift,
+  BellRing,
 } from "lucide-react";
 import api from "@/lib/api";
 import type { User } from "@/lib/types";
+import { AppearancePopover } from "@/components/ThemeControls";
 
-const navItems = [
+const navSections: {
+  title: string;
+  items: { href: string; label: string; icon: typeof Heart }[];
+}[] = [
   {
-    href: "/us",
-    label: "Us",
-    icon: MessageCircle,
-    description: "Shared chat",
+    title: "Together",
+    items: [
+      { href: "/us", label: "Us", icon: MessageCircle },
+      { href: "/memory", label: "Memory Garden", icon: Sparkles },
+      { href: "/bloom", label: "Daily Bloom", icon: Flower2 },
+      { href: "/little-things", label: "Little Things", icon: Heart },
+    ],
   },
   {
-    href: "/memory",
-    label: "Memory Garden",
-    icon: Sparkles,
-    description: "Saved moments",
+    title: "Keepsakes",
+    items: [
+      { href: "/timeline", label: "Our Story", icon: CalendarDays },
+      { href: "/map", label: "Garden Map", icon: Map },
+      { href: "/capsules", label: "Time Capsules", icon: Hourglass },
+      { href: "/letters", label: "Letters", icon: Mail },
+      { href: "/dreams", label: "Dreams", icon: Star },
+      { href: "/playlist", label: "Our Songs", icon: Music },
+      { href: "/scrapbook", label: "Scrapbook", icon: Album },
+    ],
   },
   {
-    href: "/bloom",
-    label: "Daily Bloom",
-    icon: Flower2,
-    description: "Today's ritual",
+    title: "Just me",
+    items: [
+      { href: "/journal", label: "My Pages", icon: BookOpen },
+      { href: "/insights", label: "I Noticed", icon: Lightbulb },
+      { href: "/gifts", label: "Gift Vault", icon: Gift },
+    ],
   },
-  {
-    href: "/journal",
-    label: "My Pages",
-    icon: BookOpen,
-    description: "Private journal",
-  },
-  {
-    href: "/little-things",
-    label: "Little Things",
-    icon: Heart,
-    description: "Streak & pings",
-  },
+];
+
+const bottomTabs = [
+  { href: "/us", label: "Us", icon: MessageCircle },
+  { href: "/memory", label: "Garden", icon: Sparkles },
+  { href: "/bloom", label: "Bloom", icon: Flower2 },
+  { href: "/little-things", label: "Little", icon: Heart },
 ];
 
 export default function DashboardLayout({
@@ -59,7 +78,9 @@ export default function DashboardLayout({
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [partnerOnline, setPartnerOnline] = useState(false);
+  const [partnerName, setPartnerName] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [pingToast, setPingToast] = useState(false);
 
   useEffect(() => {
     const fetchMe = async () => {
@@ -67,7 +88,6 @@ export default function DashboardLayout({
         const res = await api.get<User>("/api/auth/me");
         setUser(res.data);
       } catch {
-        // Token expired or invalid — redirect to login
         localStorage.removeItem("bibi_token");
         router.push("/login");
       }
@@ -75,22 +95,31 @@ export default function DashboardLayout({
     fetchMe();
   }, [router]);
 
-  // Poll partner status every 30s (simple "was active in last 5 min" check)
-  useEffect(() => {
-    const checkPartner = async () => {
-      try {
-        const res = await api.get<{ partner_online: boolean }>(
-          "/api/little-things/status"
-        );
-        setPartnerOnline(res.data.partner_online ?? false);
-      } catch {
-        // Silently ignore
+  // Poll partner status + unseen pings every 30s
+  const checkPartner = useCallback(async () => {
+    try {
+      const res = await api.get<{
+        partner_online: boolean;
+        partner_name: string;
+        unseen_pings: number;
+      }>("/api/little-things/status");
+      setPartnerOnline(res.data.partner_online ?? false);
+      setPartnerName(res.data.partner_name ?? "");
+      if ((res.data.unseen_pings ?? 0) > 0) {
+        setPingToast(true);
+        await api.post("/api/little-things/pings/seen").catch(() => {});
+        setTimeout(() => setPingToast(false), 6000);
       }
-    };
+    } catch {
+      // Silently ignore
+    }
+  }, []);
+
+  useEffect(() => {
     checkPartner();
     const interval = setInterval(checkPartner, 30_000);
     return () => clearInterval(interval);
-  }, []);
+  }, [checkPartner]);
 
   const handleLogout = () => {
     localStorage.removeItem("bibi_token");
@@ -100,48 +129,67 @@ export default function DashboardLayout({
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
     <nav
       className={`flex flex-col h-full ${
-        mobile ? "p-4" : "p-5"
-      } bg-white border-r border-cream-200`}
+        mobile ? "p-4" : "p-4"
+      } bg-card border-r border-border transition-colors duration-300`}
     >
       {/* Logo */}
-      <div className="flex items-center gap-2.5 mb-8 px-1">
-        <div className="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center">
-          <Heart className="w-4 h-4 text-rose-400" fill="currentColor" />
+      <div className="flex items-center gap-2.5 mb-4 px-1 flex-shrink-0">
+        <div className="w-8 h-8 rounded-full bg-brand-100 dark:bg-brand-500/20 flex items-center justify-center">
+          <Heart
+            className="w-4 h-4 text-brand-400 animate-heartbeat"
+            fill="currentColor"
+          />
         </div>
         <span className="font-semibold text-foreground">My Bibi</span>
-        {/* Partner online indicator */}
         {partnerOnline && (
-          <span className="ml-auto flex items-center gap-1 text-xs text-sage-500">
+          <span className="ml-auto flex items-center gap-1 text-xs text-sage-500 dark:text-sage-300">
             <span className="w-2 h-2 rounded-full bg-sage-400 animate-pulse" />
             online
           </span>
         )}
+        {mobile && (
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="ml-auto p-1.5 rounded-lg hover:bg-muted text-muted-foreground"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
-      {/* Nav items */}
-      <ul className="flex-1 space-y-1">
-        {navItems.map((item) => {
-          const active =
-            pathname === item.href || pathname.startsWith(item.href + "/");
-          return (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                onClick={() => setSidebarOpen(false)}
-                className={`nav-item ${active ? "active" : ""}`}
-              >
-                <item.icon className="w-5 h-5 flex-shrink-0" />
-                <span>{item.label}</span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+      {/* Nav sections */}
+      <div className="flex-1 overflow-y-auto scrollbar-thin -mx-1 px-1">
+        {navSections.map((section) => (
+          <div key={section.title}>
+            <p className="nav-section">{section.title}</p>
+            <ul className="space-y-0.5">
+              {section.items.map((item) => {
+                const active =
+                  pathname === item.href ||
+                  pathname.startsWith(item.href + "/");
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={() => setSidebarOpen(false)}
+                      className={`nav-item ${active ? "active" : ""}`}
+                    >
+                      <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
+                      <span>{item.label}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </div>
 
-      {/* User section */}
-      <div className="border-t border-cream-200 pt-4 mt-4 space-y-1">
+      {/* Bottom: appearance + user */}
+      <div className="border-t border-border pt-3 mt-3 space-y-0.5 flex-shrink-0">
+        <AppearancePopover />
         {user && (
-          <div className="px-3 py-2 mb-2">
+          <div className="px-3 py-2">
             <p className="text-sm font-medium text-foreground">{user.name}</p>
             <p className="text-xs text-muted-foreground truncate">
               {user.email}
@@ -150,9 +198,9 @@ export default function DashboardLayout({
         )}
         <button
           onClick={handleLogout}
-          className="nav-item w-full text-left text-muted-foreground hover:text-red-400"
+          className="nav-item w-full text-left hover:text-red-400"
         >
-          <LogOut className="w-5 h-5 flex-shrink-0" />
+          <LogOut className="w-[18px] h-[18px] flex-shrink-0" />
           <span>Log out</span>
         </button>
       </div>
@@ -160,7 +208,7 @@ export default function DashboardLayout({
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-cream-100">
+    <div className="flex h-screen overflow-hidden bg-background transition-colors duration-300">
       {/* Desktop sidebar */}
       <aside className="hidden md:flex w-60 flex-col flex-shrink-0">
         <Sidebar />
@@ -169,11 +217,8 @@ export default function DashboardLayout({
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
-          <div
-            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
-            onClick={() => setSidebarOpen(false)}
-          />
-          <aside className="absolute left-0 top-0 bottom-0 w-64 z-10">
+          <div className="modal-overlay" onClick={() => setSidebarOpen(false)} />
+          <aside className="absolute left-0 top-0 bottom-0 w-72 z-10 animate-slide-in-right [animation-name:none] md:[animation-name:slide-in-right]">
             <Sidebar mobile />
           </aside>
         </div>
@@ -182,21 +227,21 @@ export default function DashboardLayout({
       {/* Main content area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile top bar */}
-        <header className="md:hidden flex items-center gap-3 px-4 py-3 bg-white border-b border-cream-200">
+        <header className="md:hidden flex items-center gap-3 px-4 py-3 bg-card border-b border-border transition-colors duration-300">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-2 -ml-2 rounded-xl hover:bg-cream-100 transition-colors"
+            className="p-2 -ml-2 rounded-xl hover:bg-muted transition-colors"
           >
             <Menu className="w-5 h-5 text-foreground" />
           </button>
           <div className="flex items-center gap-2">
-            <Heart className="w-4 h-4 text-rose-400" fill="currentColor" />
+            <Heart className="w-4 h-4 text-brand-400" fill="currentColor" />
             <span className="font-semibold text-foreground text-sm">
               My Bibi
             </span>
           </div>
           {partnerOnline && (
-            <span className="ml-auto flex items-center gap-1 text-xs text-sage-500">
+            <span className="ml-auto flex items-center gap-1 text-xs text-sage-500 dark:text-sage-300">
               <span className="w-2 h-2 rounded-full bg-sage-400 animate-pulse" />
               online
             </span>
@@ -204,8 +249,55 @@ export default function DashboardLayout({
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-auto scrollbar-thin">{children}</main>
+        <main className="flex-1 overflow-auto scrollbar-thin pb-16 md:pb-0">
+          {children}
+        </main>
+
+        {/* Mobile bottom tab bar */}
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/90 backdrop-blur-lg border-t border-border flex items-stretch transition-colors duration-300">
+          {bottomTabs.map((tab) => {
+            const active =
+              pathname === tab.href || pathname.startsWith(tab.href + "/");
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className={`flex-1 flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors ${
+                  active
+                    ? "text-brand-500 dark:text-brand-300"
+                    : "text-muted-foreground"
+                }`}
+              >
+                <tab.icon
+                  className="w-5 h-5"
+                  fill={active && tab.href === "/little-things" ? "currentColor" : "none"}
+                />
+                {tab.label}
+              </Link>
+            );
+          })}
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="flex-1 flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium text-muted-foreground"
+          >
+            <Menu className="w-5 h-5" />
+            More
+          </button>
+        </nav>
       </div>
+
+      {/* Thinking-of-you toast */}
+      {pingToast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] animate-pop-in">
+          <div className="flex items-center gap-2.5 card-warm py-3 px-5 shadow-warm">
+            <BellRing className="w-5 h-5 text-brand-400 animate-wiggle" />
+            <p className="text-sm text-foreground">
+              <span className="font-semibold">{partnerName}</span> is thinking
+              of you 💭
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

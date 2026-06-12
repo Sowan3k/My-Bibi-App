@@ -29,7 +29,9 @@ logger = logging.getLogger(__name__)
 
 PING_COOLDOWN_SECONDS = 300  # 5 minutes between pings
 ONLINE_THRESHOLD_SECONDS = 300  # Active within last 5 minutes = "online"
-RELATIONSHIP_START_DATE: Optional[str] = None  # Can be set via config in future
+
+# Phase 2: extended self-disclosed moods. Still NEVER inferred.
+VALID_MOODS = ("sunny", "partly", "cloudy", "rainy", "stormy", "snowy")
 
 
 async def _get_partner(db: AsyncSession, user_id: str) -> Optional[dict]:
@@ -103,11 +105,28 @@ async def _get_streak(db: AsyncSession) -> int:
     return streak
 
 
+async def _get_relationship_start(db: AsyncSession) -> Optional[str]:
+    """Configured relationship start date (couple_settings), if set."""
+    result = await db.execute(
+        text("SELECT value FROM couple_settings WHERE key = 'relationship_start_date'")
+    )
+    row = result.fetchone()
+    return row.value if row else None
+
+
 async def _get_days_together(db: AsyncSession) -> int:
     """
-    Days since the first user registered (a proxy for 'days together' if
-    relationship_start_date is not configured).
+    Days since the configured relationship start date, falling back to the
+    day the first user registered.
     """
+    start = await _get_relationship_start(db)
+    if start:
+        try:
+            delta = date.today() - date.fromisoformat(start)
+            return max(0, delta.days)
+        except ValueError:
+            pass
+
     result = await db.execute(
         text("SELECT MIN(created_at) as first_date FROM users")
     )
@@ -157,6 +176,10 @@ class MoodRequest(BaseModel):
     mood: str
 
 
+class StartDateRequest(BaseModel):
+    start_date: str  # YYYY-MM-DD
+
+
 @router.get("/status")
 async def get_status(
     current_user: dict = Depends(get_current_user),
@@ -202,16 +225,90 @@ async def get_status(
         remaining = PING_COOLDOWN_SECONDS - seconds_since_ping
         ping_cooldown = max(0, int(remaining))
 
+    # Unseen pings FROM partner — a gentle "they thought of you"
+    unseen = await db.execute(
+        text("""
+            SELECT COUNT(*) as cnt FROM pings
+            WHERE to_user = :uid AND seen = 0
+        """),
+        {"uid": current_user["id"]},
+    )
+    unseen_pings = unseen.fetchone().cnt
+
     return {
         "streak": streak,
         "days_together": days_together,
-        "relationship_started": None,  # Phase 2: make this configurable
+        "relationship_started": await _get_relationship_start(db),
         "partner_name": partner["name"] if partner else "your partner",
         "partner_online": partner_online,
         "partner_mood": partner_mood,  # self-disclosure, never inferred
         "my_mood": my_mood,
         "ping_cooldown_seconds": ping_cooldown,
+        "unseen_pings": unseen_pings,
     }
+
+
+@router.post("/pings/seen")
+async def mark_pings_seen(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Mark all pings sent TO me as seen."""
+    await db.execute(
+        text("UPDATE pings SET seen = 1 WHERE to_user = :uid AND seen = 0"),
+        {"uid": current_user["id"]},
+    )
+    await db.commit()
+    return {"ok": True}
+
+
+@router.get("/mood-history")
+async def mood_history(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    MY OWN mood calendar (last 90 days), for the heatmap.
+    MIRROR PRINCIPLE: this endpoint never returns the partner's history —
+    only their single latest self-disclosed mood appears in /status.
+    """
+    result = await db.execute(
+        text("""
+            SELECT substr(set_at, 1, 10) as day, mood, MAX(set_at) as latest
+            FROM mood_weather
+            WHERE user_id = :uid
+              AND set_at >= date('now', '-90 days')
+            GROUP BY substr(set_at, 1, 10)
+            ORDER BY day ASC
+        """),
+        {"uid": current_user["id"]},
+    )
+    return [{"date": row.day, "mood": row.mood} for row in result.fetchall()]
+
+
+@router.post("/start-date")
+async def set_start_date(
+    request: StartDateRequest,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Either partner can set the relationship start date — equally owned."""
+    try:
+        date.fromisoformat(request.start_date)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="start_date must be YYYY-MM-DD.")
+
+    now = datetime.now(timezone.utc).isoformat()
+    await db.execute(
+        text("""
+            INSERT INTO couple_settings (key, value, updated_by, updated_at)
+            VALUES ('relationship_start_date', :val, :uid, :now)
+            ON CONFLICT(key) DO UPDATE SET value = :val, updated_by = :uid, updated_at = :now
+        """),
+        {"val": request.start_date, "uid": current_user["id"], "now": now},
+    )
+    await db.commit()
+    return {"start_date": request.start_date}
 
 
 @router.post("/ping", status_code=201)
@@ -279,10 +376,10 @@ async def set_mood(
     MIRROR PRINCIPLE: This records the USER's OWN mood choice only.
     The app never infers, analyses, or tracks emotional state without consent.
     """
-    if request.mood not in ("sunny", "cloudy", "stormy"):
+    if request.mood not in VALID_MOODS:
         raise HTTPException(
             status_code=422,
-            detail="mood must be 'sunny', 'cloudy', or 'stormy'.",
+            detail=f"mood must be one of: {', '.join(VALID_MOODS)}.",
         )
 
     mood_id = str(uuid.uuid4())
