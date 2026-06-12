@@ -71,40 +71,73 @@ You need a server that:
 
 ### Option 1 — Oracle Cloud Always Free ⭐ (recommended)
 
-This is the best option. Oracle gives you a genuinely free-forever VM with 1 GB RAM and 50 GB storage. No credit card games.
+The only genuinely free-forever tier that runs the FULL stack including local AI:
+an **Ampere A1 (ARM) VM with up to 4 OCPUs and 24 GB RAM**, plus 200 GB of block
+storage. That's enough for Docker, the app, AND Ollama with a 3B–7B model.
+(Do NOT pick the 1 GB AMD Micro — it can't run Ollama.)
+
+All images in this repo are arm64-ready (`python:3.11-slim`, `node:20-alpine`,
+`ollama/ollama` are multi-arch) — `docker compose up` just works on A1.
+
+**Three things to know about Oracle before you start:**
+
+1. **Signup is picky.** Their fraud detection rejects many legitimate cards on
+   the first try. Use your real name, a card in that exact name, no VPN.
+   If rejected, wait a day and retry — it usually goes through.
+2. **Idle Always-Free VMs can be reclaimed.** After signup, upgrade the account
+   to **Pay As You Go** (Billing → Upgrade). You still pay $0 while inside the
+   free limits, but your instance becomes safe from reclamation. Do this.
+3. **Two firewalls, not one.** Oracle blocks ports in the cloud **Security List**
+   AND in the OS's own iptables. You must open them in BOTH places (step 5).
 
 **Steps:**
 
-1. Sign up at [cloud.oracle.com](https://cloud.oracle.com) — choose "Always Free" tier
-2. Create an **AMD Micro** instance (Ubuntu 22.04 LTS)
-3. SSH in and install Docker:
+1. Sign up at [cloud.oracle.com](https://cloud.oracle.com)
+2. Create instance → Image: **Ubuntu 22.04** → Shape: **Ampere A1 Flex**
+   (e.g. 2 OCPU / 12 GB — leave headroom inside the free 4/24 limit), add your
+   SSH key, create.
+3. Open ports in the cloud firewall: VCN → your subnet → **Security List** →
+   Add Ingress Rules for TCP **80** and **443** (source `0.0.0.0/0`).
+4. SSH in and install Docker:
 ```bash
-sudo apt update && sudo apt install -y docker.io docker-compose-plugin
-sudo usermod -aG docker ubuntu
+sudo apt update && sudo apt install -y docker.io docker-compose-v2
+sudo usermod -aG docker ubuntu && newgrp docker
 ```
-4. Clone the repo and configure:
+5. Open the same ports in the OS firewall (Oracle's Ubuntu ships restrictive iptables):
+```bash
+sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 80 -j ACCEPT
+sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 443 -j ACCEPT
+sudo netfilter-persistent save
+```
+6. Clone the repo and configure:
 ```bash
 git clone https://github.com/Sowan3k/My-Bibi-App.git
 cd My-Bibi-App
 cp .env.example .env
-nano .env   # set JWT_SECRET, INVITE_SECRET, FRONTEND_URL=https://yourdomain.com
+nano .env   # set JWT_SECRET, INVITE_SECRET, FRONTEND_URL=https://yourdomain.duckdns.org
 ```
-5. Start it:
+7. Start it (add `--profile ai` if you want Ollama for the "I Noticed" features):
 ```bash
 docker compose up -d
+# with local AI:
+docker compose --profile ai up -d
+docker exec -it $(docker ps -qf name=ollama) ollama pull llama3.2:3b
 ```
-6. Point your domain (or a free subdomain from [DuckDNS](https://duckdns.org)) at the server IP
-7. Add HTTPS with [Caddy](https://caddyserver.com) (2 commands):
+8. Point a domain (or a free [DuckDNS](https://duckdns.org) subdomain) at the
+   server's public IP.
+9. Add HTTPS with [Caddy](https://caddyserver.com):
 ```bash
 sudo apt install -y caddy
-# Edit /etc/caddy/Caddyfile:
+# /etc/caddy/Caddyfile:
 # yourdomain.duckdns.org {
 #     reverse_proxy localhost:3000
 # }
 sudo systemctl reload caddy
 ```
 
-Your app is now live at `https://yourdomain.duckdns.org`. Share the `/join?token=...` link with your partner.
+Your app is now live at `https://yourdomain.duckdns.org`. Open `/setup`, create
+your account, and send the invite link to your partner. Budget an afternoon for
+the Oracle networking the first time — it's the price of free.
 
 ---
 
@@ -136,11 +169,20 @@ If you have a PC at home that's always on (or a Raspberry Pi):
 1. Install Docker Desktop (Windows/Mac) or docker.io (Linux)
 2. Clone the repo, edit `.env`
 3. Run `docker compose up -d`
-4. Use [Tailscale](https://tailscale.com) (free) to access it from anywhere without port-forwarding:
-   - Install Tailscale on the home PC and on your phone
-   - Your app becomes accessible at the Tailscale IP, e.g. `http://100.x.x.x:3000`
+4. Access it from anywhere — two free choices, no port-forwarding:
+   - **Private (recommended for couples):** [Tailscale](https://tailscale.com)
+     on the home PC and both phones → app at `http://100.x.x.x:3000`. Nobody
+     outside your tailnet can even see it.
+   - **Public URL:** a [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)
+     gives you `https://yourname.example.com` with HTTPS, for free:
+     ```bash
+     # on the home PC
+     cloudflared tunnel --url http://localhost:3000   # quick throwaway URL
+     # or set up a named tunnel for a stable domain (see Cloudflare docs)
+     ```
 
-This option means your data never leaves your own hardware at all.
+This option means your data never leaves your own hardware at all — the most
+on-brand way to host a privacy app, as long as the machine stays on.
 
 ---
 
