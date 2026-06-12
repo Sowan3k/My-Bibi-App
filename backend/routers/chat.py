@@ -2,10 +2,16 @@
 My Bibi — Chat router
 
 Endpoints:
-  GET  /api/chat/messages       — Paginated message list
-  POST /api/chat/messages       — Send text message
-  POST /api/chat/media          — Upload photo or voice note (saves as message)
-  GET  /api/chat/messages/stream — SSE stream for real-time messages (Phase 2)
+  GET  /api/chat/messages            — Paginated message list (marks partner msgs delivered)
+  POST /api/chat/messages            — Send text message
+  POST /api/chat/messages/seen       — Mark all partner messages as seen
+  POST /api/chat/messages/{id}/react — Toggle an emoji reaction
+  POST /api/chat/media               — Upload photo/voice/file (saves as message)
+  GET  /api/chat/messages/stream     — SSE stream for real-time messages
+
+Receipts and reactions are symmetric shared-chat state — both partners
+see the same thing. No mirror-principle concern: nothing here is an
+inference about anyone, only explicit actions.
 """
 
 import asyncio
@@ -17,21 +23,35 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from fastapi.responses import StreamingResponse, FileResponse
 from pydantic import BaseModel
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.database import get_db
 from middleware.auth_middleware import get_current_user
-from services.chat_service import get_messages, send_message, save_media
+from services.chat_service import (
+    get_messages,
+    send_message,
+    save_media,
+    mark_seen,
+    toggle_reaction,
+)
 from config import settings
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+# Fixed palette keeps storage clean and the picker simple
+ALLOWED_REACTIONS = ("❤️", "😂", "😮", "😢", "🙏", "👍")
 
 
 class SendMessageRequest(BaseModel):
     content: Optional[str] = None
     media_type: Optional[str] = None
     reply_to: Optional[str] = None
+
+
+class ReactRequest(BaseModel):
+    emoji: str
 
 
 @router.get("/messages")
@@ -85,6 +105,47 @@ async def create_message(
     msg["sender_name"] = current_user["name"]
     msg["is_mine"] = True
     return msg
+
+
+@router.post("/messages/seen")
+async def mark_messages_seen(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Mark every partner message as seen. Called by the client when the
+    chat is actually on screen — an explicit, mutual receipt, same for
+    both partners.
+    """
+    marked = await mark_seen(db, current_user["id"])
+    return {"marked": marked}
+
+
+@router.post("/messages/{message_id}/react")
+async def react_to_message(
+    message_id: str,
+    request: ReactRequest,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Toggle an emoji reaction on a message. Same emoji removes, a
+    different one replaces — one reaction per person per message.
+    """
+    if request.emoji not in ALLOWED_REACTIONS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"emoji must be one of: {' '.join(ALLOWED_REACTIONS)}",
+        )
+
+    result = await db.execute(
+        text("SELECT id FROM messages WHERE id = :id"), {"id": message_id}
+    )
+    if not result.fetchone():
+        raise HTTPException(status_code=404, detail="Message not found.")
+
+    emoji = await toggle_reaction(db, message_id, current_user["id"], request.emoji)
+    return {"message_id": message_id, "emoji": emoji}  # emoji=None → removed
 
 
 @router.post("/media", status_code=201)

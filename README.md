@@ -1,6 +1,28 @@
 # My Bibi ❤️
 
-A self-hosted, privacy-first companion app for two people in a relationship. Built by one couple, for themselves first. Open source so other couples can run their own.
+**Your own private chat app — for exactly two people. Self-hosted, open source, free forever.**
+
+## What is this?
+
+My Bibi is a complete companion app for couples that you run on your own server: a private chat (texts, photos, voice notes, reactions, seen/delivered receipts), a shared memory garden, daily question rituals, time capsules, letters, a dreams board, your song playlist, encrypted private journals — the whole story of a relationship, in one place that belongs only to the two of you.
+
+## Why does this exist?
+
+**Because developers are bad at time, and good at servers.**
+
+If you write code for a living, you know the feeling: the sprint ran long, the deploy broke, and the person you love got the leftovers of your attention — again. My Bibi is built to help with exactly that. It doesn't nag and it doesn't gamify your relationship; it gives you small, real rituals (a daily question, a thinking-of-you ping, a memory that resurfaces at the right moment) that make showing up easy even on busy days.
+
+**And because you know where chat data goes.**
+
+We're developers. We know how this industry works — the "free" messengers are paid for with data, and chat logs are exactly the kind of text that ends up training someone's model. The words between you and your partner are the most private text you will ever produce. They don't belong in anyone's training set.
+
+So: host it yourself. One `docker compose up` on any cheap VPS or the old laptop in your closet, and you and your partner have a chat system where:
+
+- **You control the data.** Every message, photo, and journal entry lives on *your* disk, as SQLite + human-readable markdown. Back it up with `tar`. Open it in Obsidian. It's yours.
+- **Nobody else is in the room.** No third-party analytics, no telemetry, no cloud APIs touching message content. The AI features run on a local model (Ollama) on your own hardware.
+- **It's genuinely impressive.** Let's be honest — "I built us our own private app" lands better than any subscription gift. Pick her favourite colour theme. Seal a time capsule for her birthday. She gets an app no one else in the world has.
+
+**Open source, for everyone.** This project is public so any developer can clone it and set it up with their own credentials in minutes — your own secrets, your own server, your own two accounts, nobody else's. Fork it, theme it, make it yours.
 
 > **"This app will never message your partner for you, never read your partner's mood for you, and never score your relationship. It remembers what you chose to keep, reminds you to show up, and stays out of the way. Your data lives on your server, in plain markdown, owned by both of you equally. We built the limits in on purpose. The limits are the point."**
 
@@ -35,7 +57,7 @@ My Bibi is designed with hard limits, not soft suggestions. These are not future
 
 | Feature | Description |
 |---|---|
-| **Shared Chat (Us)** | Private text, photo, voice note, and file chat — with rich link previews |
+| **Shared Chat (Us)** | Text, photos, voice notes, files, link previews — with online/offline presence, sent/delivered/seen ticks, and emoji reactions |
 | **Memory Garden** | Save meaningful moments as markdown — searchable, browsable, yours forever |
 | **Daily Bloom** | One shared prompt per day; answers revealed only after both respond |
 | **Time Capsules** | Seal a message + photo until a future date — neither of you can open early |

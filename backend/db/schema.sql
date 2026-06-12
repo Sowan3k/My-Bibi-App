@@ -29,7 +29,27 @@ CREATE TABLE IF NOT EXISTS messages (
     media_path TEXT,
     reply_to TEXT,
     created_at TEXT NOT NULL,
+    delivered_at TEXT,  -- set when the partner's client first fetches it
+    seen_at TEXT,       -- set when the partner marks the chat as seen
     FOREIGN KEY (sender_id) REFERENCES users(id)
+);
+
+-- Idempotent migrations for DBs created before receipts existed.
+-- init_db() executes statements one by one and skips ones that error,
+-- so "duplicate column" on re-runs is harmless by design.
+ALTER TABLE messages ADD COLUMN delivered_at TEXT;
+ALTER TABLE messages ADD COLUMN seen_at TEXT;
+
+-- One reaction per person per message (tap same emoji again to remove)
+CREATE TABLE IF NOT EXISTS message_reactions (
+    id TEXT PRIMARY KEY,
+    message_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    emoji TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    UNIQUE(message_id, user_id),
+    FOREIGN KEY (message_id) REFERENCES messages(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 CREATE TABLE IF NOT EXISTS memories (
@@ -236,4 +256,5 @@ CREATE INDEX IF NOT EXISTS idx_dreams_status ON dreams(status);
 CREATE INDEX IF NOT EXISTS idx_dream_steps_dream ON dream_steps(dream_id);
 CREATE INDEX IF NOT EXISTS idx_playlist_created ON playlist_memories(created_at);
 CREATE INDEX IF NOT EXISTS idx_insights_user ON insights(user_id, created_at);
-CREATE INDEX IF NOT EXISTS idx_gifts_user ON gift_wishes(user_id)
+CREATE INDEX IF NOT EXISTS idx_gifts_user ON gift_wishes(user_id);
+CREATE INDEX IF NOT EXISTS idx_reactions_message ON message_reactions(message_id)

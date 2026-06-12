@@ -48,6 +48,11 @@ class JoinRequest(BaseModel):
     invite_token: str
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
 class UserResponse(BaseModel):
     id: str
     email: str
@@ -326,6 +331,96 @@ async def login(
 async def get_me(current_user: dict = Depends(get_current_user)):
     """Return current authenticated user's info."""
     return UserResponse(**current_user)
+
+
+@router.post("/change-password")
+async def change_password(
+    request: ChangePasswordRequest,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Change the user's password.
+
+    Because the journal/gift-vault encryption key is DERIVED FROM THE
+    PASSWORD, this endpoint re-encrypts every encrypted row with the new
+    key in one pass: decrypt all with the old key (in memory), swap the
+    hash, swap the cached key, write everything back encrypted.
+    """
+    me = current_user["id"]
+
+    result = await db.execute(
+        text("SELECT password_hash FROM users WHERE id = :id"), {"id": me}
+    )
+    row = result.fetchone()
+    if not row or not verify_password(request.current_password, row.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Current password is incorrect.",
+        )
+    if len(request.new_password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="New password must be at least 8 characters.",
+        )
+
+    # Make sure the OLD key is in memory, then decrypt everything with it
+    crypto.unlock_user(me, request.current_password)
+
+    journal_rows = (
+        await db.execute(
+            text("SELECT id, content_encrypted FROM journal_entries WHERE user_id = :uid"),
+            {"uid": me},
+        )
+    ).fetchall()
+    gift_rows = (
+        await db.execute(
+            text("SELECT id, content_encrypted FROM gift_wishes WHERE user_id = :uid"),
+            {"uid": me},
+        )
+    ).fetchall()
+
+    try:
+        journal_plain = [
+            (r.id, crypto.decrypt_for_user(me, r.content_encrypted)) for r in journal_rows
+        ]
+        gift_plain = [
+            (r.id, crypto.decrypt_for_user(me, r.content_encrypted)) for r in gift_rows
+        ]
+    except crypto.InvalidToken:
+        raise HTTPException(
+            status_code=500,
+            detail="Stored entries don't match your current password — cannot re-encrypt safely.",
+        )
+
+    # Swap password hash + cached key, then write everything back
+    await db.execute(
+        text("UPDATE users SET password_hash = :hash WHERE id = :id"),
+        {"hash": hash_password(request.new_password), "id": me},
+    )
+    crypto.unlock_user(me, request.new_password)
+
+    for entry_id, content in journal_plain:
+        await db.execute(
+            text("UPDATE journal_entries SET content_encrypted = :c WHERE id = :id AND user_id = :uid"),
+            {"c": crypto.encrypt_for_user(me, content), "id": entry_id, "uid": me},
+        )
+    for wish_id, content in gift_plain:
+        await db.execute(
+            text("UPDATE gift_wishes SET content_encrypted = :c WHERE id = :id AND user_id = :uid"),
+            {"c": crypto.encrypt_for_user(me, content), "id": wish_id, "uid": me},
+        )
+    await db.commit()
+
+    logger.info(
+        f"Password changed for {me[:8]}… — re-encrypted "
+        f"{len(journal_plain)} journal entries, {len(gift_plain)} wishes"
+    )
+    return {
+        "changed": True,
+        "reencrypted_entries": len(journal_plain),
+        "reencrypted_wishes": len(gift_plain),
+    }
 
 
 @router.post("/invite")

@@ -9,10 +9,34 @@ import {
   Paperclip,
   FileText,
   ExternalLink,
+  Smile,
+  Check,
+  CheckCheck,
 } from "lucide-react";
 import api from "@/lib/api";
 import type { Message, User } from "@/lib/types";
 import { format, isToday, isYesterday } from "date-fns";
+
+const REACTION_EMOJI = ["❤️", "😂", "😮", "😢", "🙏", "👍"];
+
+/** Sent / delivered / seen ticks for my own messages. */
+function Receipt({ msg }: { msg: Message }) {
+  if (msg.id.startsWith("temp-")) {
+    return <Check className="w-3 h-3 inline-block opacity-50" />;
+  }
+  if (msg.seen_at) {
+    return (
+      <span className="inline-flex items-center gap-0.5 text-brand-500 dark:text-brand-300">
+        <CheckCheck className="w-3 h-3" />
+        <span className="text-[9px] font-medium">Seen</span>
+      </span>
+    );
+  }
+  if (msg.delivered_at) {
+    return <CheckCheck className="w-3 h-3 inline-block opacity-60" />;
+  }
+  return <Check className="w-3 h-3 inline-block opacity-60" />;
+}
 
 function formatMessageTime(dateStr: string): string {
   const d = new Date(dateStr);
@@ -116,17 +140,20 @@ function LinkPreview({ url }: { url: string }) {
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [me, setMe] = useState<User | null>(null);
+  const [partner, setPartner] = useState<{ name: string; online: boolean } | null>(null);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [recording, setRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [reactingTo, setReactingTo] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const lastMessageId = useRef<string | null>(null);
+  const markingSeen = useRef(false);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -136,6 +163,43 @@ export default function ChatPage() {
     api.get<User>("/api/auth/me").then((r) => setMe(r.data)).catch(() => {});
   }, []);
 
+  // Partner presence (online/offline) — refreshed every 30s
+  useEffect(() => {
+    const fetchPresence = async () => {
+      try {
+        const res = await api.get<{ partner_name: string; partner_online: boolean }>(
+          "/api/little-things/status"
+        );
+        setPartner({
+          name: res.data.partner_name,
+          online: res.data.partner_online ?? false,
+        });
+      } catch {
+        // ignore
+      }
+    };
+    fetchPresence();
+    const interval = setInterval(fetchPresence, 30_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Tell the server I've seen the partner's messages — only while the
+  // chat is actually on screen.
+  const maybeMarkSeen = useCallback(async (msgs: Message[]) => {
+    if (markingSeen.current) return;
+    if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+    const unseen = msgs.some((m) => !m.is_mine && !m.seen_at);
+    if (!unseen) return;
+    markingSeen.current = true;
+    try {
+      await api.post("/api/chat/messages/seen");
+    } catch {
+      // ignore
+    } finally {
+      markingSeen.current = false;
+    }
+  }, []);
+
   const fetchMessages = useCallback(async () => {
     try {
       const res = await api.get<Message[]>("/api/chat/messages", {
@@ -143,16 +207,20 @@ export default function ChatPage() {
       });
       const newMessages = res.data;
 
+      // Always update — receipts and reactions change without new ids
+      setMessages(newMessages);
+
       const latestId = newMessages[newMessages.length - 1]?.id;
       if (latestId !== lastMessageId.current) {
         lastMessageId.current = latestId ?? null;
-        setMessages(newMessages);
         setTimeout(scrollToBottom, 50);
       }
+
+      maybeMarkSeen(newMessages);
     } catch {
       // Silently fail during polling
     }
-  }, [scrollToBottom]);
+  }, [scrollToBottom, maybeMarkSeen]);
 
   useEffect(() => {
     fetchMessages();
@@ -161,6 +229,41 @@ export default function ChatPage() {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
   }, [fetchMessages]);
+
+  // Returning to the tab counts as seeing the chat
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") fetchMessages();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [fetchMessages]);
+
+  // Toggle an emoji reaction (optimistic, poll confirms)
+  const react = async (messageId: string, emoji: string) => {
+    setReactingTo(null);
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.id !== messageId) return m;
+        const mine = (m.reactions ?? []).find((r) => r.is_mine);
+        const others = (m.reactions ?? []).filter((r) => !r.is_mine);
+        const next =
+          mine && mine.emoji === emoji
+            ? others // same emoji → remove
+            : [...others, { user_id: me?.id ?? "", emoji, is_mine: true }];
+        return { ...m, reactions: next };
+      })
+    );
+    try {
+      await api.post(`/api/chat/messages/${messageId}/react`, { emoji });
+    } catch {
+      // poll will restore the truth
+    }
+  };
 
   const sendMessage = async () => {
     const content = text.trim();
@@ -278,6 +381,36 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col h-full">
+      {/* Chat header — who you're talking to, and whether they're here */}
+      {partner && (
+        <div className="flex items-center gap-3 px-4 py-2.5 border-b border-border bg-card/60 backdrop-blur-sm transition-colors duration-300">
+          <div className="relative">
+            <div className="w-9 h-9 rounded-full bg-brand-100 dark:bg-brand-500/20 flex items-center justify-center text-sm font-semibold text-brand-500 dark:text-brand-300">
+              {partner.name.charAt(0).toUpperCase()}
+            </div>
+            <span
+              className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-card ${
+                partner.online ? "bg-sage-400 animate-pulse" : "bg-muted-foreground/40"
+              }`}
+            />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-foreground leading-tight">
+              {partner.name}
+            </p>
+            <p
+              className={`text-[11px] leading-tight ${
+                partner.online
+                  ? "text-sage-500 dark:text-sage-300"
+                  : "text-muted-foreground"
+              }`}
+            >
+              {partner.online ? "online" : "offline"}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4 space-y-1">
         {messages.length === 0 && (
@@ -306,14 +439,50 @@ export default function ChatPage() {
             {group.messages.map((msg) => {
               const isMine = msg.is_mine || msg.sender_id === me?.id;
               const url = extractUrl(msg.content);
+              const reactions = msg.reactions ?? [];
               return (
                 <div
                   key={msg.id}
-                  className={`flex mb-2 ${
+                  className={`group/msg flex mb-2 items-end gap-1.5 ${
                     isMine ? "justify-end" : "justify-start"
                   } ${msg.id.startsWith("temp-") ? "" : "animate-fade-in"}`}
                 >
-                  <div className="max-w-xs md:max-w-md space-y-0.5">
+                  {/* React affordance (left of my bubbles) */}
+                  {isMine && !msg.id.startsWith("temp-") && (
+                    <button
+                      onClick={() =>
+                        setReactingTo(reactingTo === msg.id ? null : msg.id)
+                      }
+                      className="mb-5 p-1 rounded-full text-muted-foreground/60 hover:text-foreground hover:bg-muted opacity-60 md:opacity-0 md:group-hover/msg:opacity-100 transition-all"
+                      title="React"
+                    >
+                      <Smile className="w-4 h-4" />
+                    </button>
+                  )}
+
+                  <div className="max-w-xs md:max-w-md space-y-0.5 relative">
+                    {/* Emoji picker */}
+                    {reactingTo === msg.id && (
+                      <div
+                        className={`absolute -top-10 z-20 flex gap-0.5 bg-card border border-border rounded-full px-2 py-1 shadow-warm animate-pop-in ${
+                          isMine ? "right-0" : "left-0"
+                        }`}
+                      >
+                        {REACTION_EMOJI.map((e) => (
+                          <button
+                            key={e}
+                            onClick={() => react(msg.id, e)}
+                            className={`text-lg leading-none p-1 rounded-full hover:scale-125 transition-transform ${
+                              reactions.some((r) => r.is_mine && r.emoji === e)
+                                ? "bg-brand-50 dark:bg-brand-500/20"
+                                : ""
+                            }`}
+                          >
+                            {e}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     {/* Photo */}
                     {msg.media_type === "photo" && msg.media_path && (
                       <div
@@ -386,15 +555,53 @@ export default function ChatPage() {
                     {/* Link preview for the first URL */}
                     {url && <LinkPreview url={url} />}
 
-                    {/* Timestamp */}
+                    {/* Reaction chips */}
+                    {reactions.length > 0 && (
+                      <div
+                        className={`flex gap-1 -mt-1.5 relative z-10 ${
+                          isMine ? "justify-end pr-2" : "pl-2"
+                        }`}
+                      >
+                        {reactions.map((r) => (
+                          <button
+                            key={`${r.user_id}-${r.emoji}`}
+                            onClick={() => r.is_mine && react(msg.id, r.emoji)}
+                            className={`text-xs bg-card border border-border rounded-full px-1.5 py-0.5 shadow-card animate-pop-in ${
+                              r.is_mine
+                                ? "ring-1 ring-brand-300 cursor-pointer"
+                                : "cursor-default"
+                            }`}
+                            title={r.is_mine ? "Tap to remove" : "Their reaction"}
+                          >
+                            {r.emoji}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Timestamp + receipts */}
                     <p
-                      className={`text-[10px] text-muted-foreground ${
-                        isMine ? "text-right" : "text-left"
+                      className={`text-[10px] text-muted-foreground flex items-center gap-1 ${
+                        isMine ? "justify-end" : "justify-start"
                       }`}
                     >
                       {formatMessageTime(msg.created_at)}
+                      {isMine && <Receipt msg={msg} />}
                     </p>
                   </div>
+
+                  {/* React affordance (right of partner bubbles) */}
+                  {!isMine && (
+                    <button
+                      onClick={() =>
+                        setReactingTo(reactingTo === msg.id ? null : msg.id)
+                      }
+                      className="mb-5 p-1 rounded-full text-muted-foreground/60 hover:text-foreground hover:bg-muted opacity-60 md:opacity-0 md:group-hover/msg:opacity-100 transition-all"
+                      title="React"
+                    >
+                      <Smile className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               );
             })}

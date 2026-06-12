@@ -22,10 +22,16 @@ import {
   Lightbulb,
   Gift,
   BellRing,
+  HelpCircle,
+  Settings,
 } from "lucide-react";
 import api from "@/lib/api";
 import type { User } from "@/lib/types";
 import { AppearancePopover } from "@/components/ThemeControls";
+import Onboarding, {
+  shouldShowOnboarding,
+  ONBOARDING_EVENT,
+} from "@/components/Onboarding";
 
 const navSections: {
   title: string;
@@ -81,6 +87,15 @@ export default function DashboardLayout({
   const [partnerName, setPartnerName] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [pingToast, setPingToast] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // First-run tour + replay event (from Help/Settings)
+  useEffect(() => {
+    if (shouldShowOnboarding()) setShowOnboarding(true);
+    const onReplay = () => setShowOnboarding(true);
+    window.addEventListener(ONBOARDING_EVENT, onReplay);
+    return () => window.removeEventListener(ONBOARDING_EVENT, onReplay);
+  }, []);
 
   useEffect(() => {
     const fetchMe = async () => {
@@ -185,8 +200,24 @@ export default function DashboardLayout({
         ))}
       </div>
 
-      {/* Bottom: appearance + user */}
+      {/* Bottom: help, settings, appearance + user */}
       <div className="border-t border-border pt-3 mt-3 space-y-0.5 flex-shrink-0">
+        <Link
+          href="/help"
+          onClick={() => setSidebarOpen(false)}
+          className={`nav-item ${pathname.startsWith("/help") ? "active" : ""}`}
+        >
+          <HelpCircle className="w-[18px] h-[18px] flex-shrink-0" />
+          <span>Help & guide</span>
+        </Link>
+        <Link
+          href="/settings"
+          onClick={() => setSidebarOpen(false)}
+          className={`nav-item ${pathname.startsWith("/settings") ? "active" : ""}`}
+        >
+          <Settings className="w-[18px] h-[18px] flex-shrink-0" />
+          <span>Settings</span>
+        </Link>
         <AppearancePopover />
         {user && (
           <div className="px-3 py-2">
@@ -285,6 +316,11 @@ export default function DashboardLayout({
           </button>
         </nav>
       </div>
+
+      {/* First-run / replayed tour */}
+      {showOnboarding && (
+        <Onboarding onClose={() => setShowOnboarding(false)} />
+      )}
 
       {/* Thinking-of-you toast */}
       {pingToast && (

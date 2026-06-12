@@ -21,6 +21,12 @@ export interface SetupResponse extends AuthResponse {
   invite_link: string;
 }
 
+export interface Reaction {
+  user_id: string;
+  emoji: string;
+  is_mine: boolean;
+}
+
 export interface Message {
   id: string;
   sender_id: string;
@@ -30,6 +36,10 @@ export interface Message {
   media_path: string | null;
   reply_to: string | null;
   created_at: string;
+  /** Receipts — null until the partner's client fetches / opens the chat */
+  delivered_at?: string | null;
+  seen_at?: string | null;
+  reactions?: Reaction[];
   /** Populated on the frontend — true if sender_id matches current user */
   is_mine?: boolean;
 }
