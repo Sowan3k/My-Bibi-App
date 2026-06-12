@@ -32,6 +32,7 @@ import Onboarding, {
   shouldShowOnboarding,
   ONBOARDING_EVENT,
 } from "@/components/Onboarding";
+import AmbientBackground from "@/components/AmbientBackground";
 
 const navSections: {
   title: string;
@@ -239,9 +240,12 @@ export default function DashboardLayout({
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background transition-colors duration-300">
+    <div className="relative flex h-screen overflow-hidden bg-background transition-colors duration-300">
+      {/* Drifting petals behind everything */}
+      <AmbientBackground />
+
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex w-60 flex-col flex-shrink-0">
+      <aside className="relative z-10 hidden md:flex w-60 flex-col flex-shrink-0">
         <Sidebar />
       </aside>
 
@@ -256,7 +260,7 @@ export default function DashboardLayout({
       )}
 
       {/* Main content area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="relative z-10 flex-1 flex flex-col overflow-hidden">
         {/* Mobile top bar */}
         <header className="md:hidden flex items-center gap-3 px-4 py-3 bg-card border-b border-border transition-colors duration-300">
           <button

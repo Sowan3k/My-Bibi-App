@@ -55,7 +55,7 @@ async def _get_streak(db: AsyncSession) -> int:
     """
     result = await db.execute(
         text("""
-            SELECT COUNT(DISTINCT user_id) as user_count FROM users
+            SELECT COUNT(*) as user_count FROM users
         """)
     )
     user_count = result.fetchone().user_count

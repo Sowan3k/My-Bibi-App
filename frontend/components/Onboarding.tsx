@@ -93,7 +93,7 @@ export default function Onboarding({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
       <div className="modal-overlay" onClick={finish} />
-      <div className="modal-panel max-w-md text-center overflow-hidden">
+      <div className="modal-panel max-w-md text-center max-h-[90vh] overflow-y-auto scrollbar-thin">
         {/* Skip */}
         <button
           onClick={finish}

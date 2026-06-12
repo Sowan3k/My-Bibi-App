@@ -65,6 +65,9 @@ Thumbs.db
 *.tsbuildinfo
 next-env.d.ts
 
+# Raw visual-check screenshots (curated ones live in docs/screenshots)
+frontend/scripts/shots/
+
 # next-pwa generated service worker artifacts
 frontend/public/sw.js
 frontend/public/sw.js.map

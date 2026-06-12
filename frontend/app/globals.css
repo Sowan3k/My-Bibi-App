@@ -341,6 +341,33 @@
   }
 }
 
+/* Ambient dashboard particles — slow petal fall with gentle sway */
+.ambient-particle {
+  position: absolute;
+  top: -8vh;
+  animation-name: ambient-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes ambient-fall {
+  0% {
+    transform: translateY(0) translateX(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(28vh) translateX(2.5vw) rotate(40deg);
+  }
+  50% {
+    transform: translateY(56vh) translateX(-2vw) rotate(85deg);
+  }
+  75% {
+    transform: translateY(84vh) translateX(2vw) rotate(130deg);
+  }
+  100% {
+    transform: translateY(116vh) translateX(-1vw) rotate(180deg);
+  }
+}
+
 /* Garden Map plant sway */
 @keyframes garden-sway {
   from {

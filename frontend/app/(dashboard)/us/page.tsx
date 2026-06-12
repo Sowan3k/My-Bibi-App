@@ -461,11 +461,12 @@ export default function ChatPage() {
                   )}
 
                   <div className="max-w-xs md:max-w-md space-y-0.5 relative">
-                    {/* Emoji picker */}
+                    {/* Emoji picker — in normal flow so it can never clip
+                        against the scroll container edge on mobile */}
                     {reactingTo === msg.id && (
                       <div
-                        className={`absolute -top-10 z-20 flex gap-0.5 bg-card border border-border rounded-full px-2 py-1 shadow-warm animate-pop-in ${
-                          isMine ? "right-0" : "left-0"
+                        className={`flex gap-0.5 w-fit bg-card border border-border rounded-full px-2 py-1 shadow-warm animate-pop-in mb-1 ${
+                          isMine ? "ml-auto" : ""
                         }`}
                       >
                         {REACTION_EMOJI.map((e) => (

@@ -54,6 +54,15 @@
 - [x] Change password (`POST /api/auth/change-password`) — re-encrypts all journal entries & gift wishes with the new password-derived key in one pass
 - [x] Themed 404 page
 
+### Visual QA pass (2026-06-12, Playwright against a temp vault)
+- [x] Screenshot sweep: phone 390px / tablet 820px / desktop 1440px, light + dark — no broken or collapsing elements found
+- [x] FIXED Phase-1 bug caught live: `little_things._get_streak` queried `COUNT(DISTINCT user_id) FROM users` (column is `id`) → /status 500'd, blanking Little Things + chat presence header
+- [x] Fixed: chat reaction picker could clip at scroll-container top (now inline-flow)
+- [x] Fixed: onboarding modal overflow on short/landscape screens (max-h + scroll)
+- [x] Fixed: Gift Vault crashed rendering an invalid saved URL (safe hostname helper)
+- [x] Ambient moving background: petals/sparkles drifting behind the dashboard (CSS-only, reduced-motion safe)
+- [x] Real screenshots in `docs/screenshots/` + README mockups replaced with them; `frontend/scripts/mobile-check.js` kept as a reusable visual-check tool (playwright devDep)
+
 ### Design system (NEW)
 - [x] Dark mode — warm charcoal, pre-paint script (no flash), system/light/dark
 - [x] 7 accent colour themes: Rose, Crimson ❤️, Ocean, Lavender, Sunset, Forest, Midnight — selectable from login/landing too, persisted in localStorage

@@ -6,6 +6,14 @@ import Link from "next/link";
 import api from "@/lib/api";
 import type { GiftWish } from "@/lib/types";
 
+function safeHostname(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url.length > 30 ? url.slice(0, 30) + "…" : url;
+  }
+}
+
 function WishModal({
   wish,
   onClose,
@@ -235,7 +243,7 @@ export default function GiftVaultPage() {
                       className="inline-flex items-center gap-1 text-xs text-brand-400 hover:text-brand-500 mt-1.5 transition-colors"
                     >
                       <ExternalLink className="w-3 h-3" />
-                      {new URL(wish.url).hostname}
+                      {safeHostname(wish.url)}
                     </a>
                   )}
                 </div>
