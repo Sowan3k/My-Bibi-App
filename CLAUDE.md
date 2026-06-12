@@ -35,15 +35,18 @@ These guardrails are a feature. They go in the README, stated plainly. The restr
 
 ## Tech Stack
 
-- **Frontend:** Next.js (App Router), Tailwind. Mobile-first PWA.
-- **Backend:** FastAPI (Python).
+- **Frontend:** Next.js 14 (App Router), Tailwind. Mobile-first PWA (`next-pwa` generates the service worker — never hand-write `public/sw.js`, it's gitignored build output).
+- **Theming:** CSS-variable design system in `frontend/app/globals.css`. Light/dark via `.dark` class + 7 accent palettes via `data-accent` on `<html>` (`--brand-*` scale). Fonts: Plus Jakarta Sans (body), Fraunces (`font-display`, headings), Caveat (`font-hand`, letters/notes). Text size via `data-textsize`. Pre-paint bootstrap lives in `frontend/lib/theme-script.ts` (server-safe — do NOT move it into a `"use client"` module).
+- **Backend:** FastAPI (Python). Routers are thin; raw SQL via SQLAlchemy `text()`.
 - **DB:** SQLite + FTS5. Markdown vault on disk.
-- **AI:** Ollama, small local model (Phase 3).
+- **AI:** Ollama via `backend/services/ai_service.py` only.
 - **Auth:** Two-user auth, bcrypt, JWT. Invite link flow.
-- **Encryption:** Private journal entries encrypted with key derived from author's password.
-- **Deploy:** Docker Compose.
+- **Encryption:** `backend/utils/crypto.py` — PBKDF2 (200k) derives a Fernet key from the author's password; key lives only in process memory, unlocked at setup/join/login. Journal entries and gift wishes are stored as `enc:v1:…` ciphertext in DB **and** vault. Server restart locks them until next login → endpoints return **423 Locked**, UI shows "log in to unlock". This is intended behaviour, not a bug.
+- **Deploy:** Docker Compose (Ollama optional via `ai` profile).
 
 ## Phases
+
+> **Status (2026-06-12): Phases 1–4 are feature-complete and pushed.** The descriptions below remain the spec. Live checklists: `.claude/STATUS.md` and `.claude/PHASES.md` — update both when work lands. Remaining before public release: manual two-browser end-to-end pass, Next.js upgrade off 14.2.3, Docker hardening pass.
 
 - **Phase 1:** Two-user auth + invite flow, vault path config, shared chat with text/photos/voice notes, Memory Garden. No AI yet.
 - **Phase 2:** Rich link previews, file sharing, Daily Bloom ritual, milestones, streak, thinking-of-you ping, Mood Weather (self-disclosed only — user picks their sky, never inferred), Time Capsule (either partner locks a message+media until a future date — neither can open early), On This Day (date-math resurface of old memories, no AI), Shared Playlist Memories (store a song URL + a note + who shared it, render official embeds, never proxy audio), Letters (deliberate delayed messages with scheduled delivery — a slower inbox alongside chat), Relationship Timeline (chronological story built from existing vault markdown), Future Dreams board (shared goals with progress milestones, archives into timeline when reached).
@@ -52,11 +55,21 @@ These guardrails are a feature. They go in the README, stated plainly. The restr
 
 ## Architecture Rules
 
-- Enforce the mirror principle at the API layer, not just UI. An endpoint must never return analysis of user A to user B.
+- Enforce the mirror principle at the API layer, not just UI. An endpoint must never return analysis of user A to user B. Use `utils/mirror_guard.assert_own_data_only()`; AI calls additionally pass through `ai_service.assert_single_subject()`.
 - Keep `ai_service.py` as the single chokepoint for all LLM calls.
 - All AI features must degrade gracefully if Ollama is offline.
 - Memories and journal entries are markdown files first, database rows second.
-- No external network calls in core paths.
+- No external network calls in core paths. (Exception by design: link previews fetch the user-pasted URL server-side with an SSRF guard, and song embeds are official YouTube/Spotify iframes loaded by the browser — audio is never proxied.)
+- **Time-locked content is sealed server-side.** Capsules and undelivered letters never leave the API before their date — not for the recipient, not for the author. Don't "fix" this by returning content early to the UI.
+- **Encrypted resources speak 423.** Journal and Gift Vault return 423 Locked when the user's key isn't in memory; frontends must render an unlock-by-login state, never an error.
+- **Guardrail tests are the gate.** `backend/tests/test_guardrails.py` must always pass; every new endpoint touching personal data gets a mirror-principle test.
+- **Frontend theming:** pages use semantic tokens only (`bg-card`, `bg-muted`, `border-border`, `text-muted-foreground`, `brand-*`, `tint-brand`, `tint-positive`). Never hardcode `rose-*`/`cream-*`/`bg-white` in pages — it breaks dark mode and accent switching. New accents are added in `globals.css` + `lib/theme.tsx` (`ACCENTS`).
+
+## Dev commands
+
+- **Run everything (Windows):** `dev-start.bat` (backend venv at `backend/venv/`).
+- **Backend tests:** `cd backend && venv\Scripts\python -m pytest tests/ -q`
+- **Frontend build check:** `cd frontend && npm run build` (kill stray `node` processes from old dev servers/builds first — orphaned builds make it hang on low-RAM machines; `npx tsc --noEmit` is the fast pre-check).
 
 ## Ethics Statement
 
