@@ -76,7 +76,7 @@ function CapsuleCard({
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2.5">
           <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-            <Lock className="w-4.5 h-4.5 w-[18px] h-[18px] text-muted-foreground" />
+            <Lock className="w-[18px] h-[18px] text-muted-foreground" />
           </div>
           <div>
             <h3 className="font-medium text-foreground text-sm">

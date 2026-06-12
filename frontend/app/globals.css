@@ -269,6 +269,11 @@
     background-size: 400px 100%;
   }
 
+  /* Mobile drawer slide-in (from the left) */
+  .animate-drawer-in {
+    animation: drawer-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
   /* Modal scaffolding */
   .modal-overlay {
     @apply absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm animate-fade-in;
@@ -333,6 +338,25 @@
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background-color: hsl(var(--brand-300) / 0.4);
     border-radius: 9999px;
+  }
+}
+
+/* Garden Map plant sway */
+@keyframes garden-sway {
+  from {
+    transform: rotate(-2.5deg);
+  }
+  to {
+    transform: rotate(2.5deg);
+  }
+}
+
+@keyframes drawer-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
   }
 }
 

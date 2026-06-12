@@ -65,6 +65,12 @@ Thumbs.db
 *.tsbuildinfo
 next-env.d.ts
 
+# next-pwa generated service worker artifacts
+frontend/public/sw.js
+frontend/public/sw.js.map
+frontend/public/workbox-*.js
+frontend/public/workbox-*.js.map
+
 # Testing
 coverage/
 .nyc_output/

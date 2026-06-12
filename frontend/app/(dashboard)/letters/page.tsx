@@ -246,7 +246,7 @@ export default function LettersPage() {
                     }`}
                   >
                     {letter.read_at ? (
-                      <MailOpen className="w-4.5 h-4.5 w-[18px] h-[18px] text-muted-foreground" />
+                      <MailOpen className="w-[18px] h-[18px] text-muted-foreground" />
                     ) : (
                       <Mail className="w-[18px] h-[18px] text-brand-400" />
                     )}
@@ -328,7 +328,7 @@ export default function LettersPage() {
                   )}
                 </div>
                 {letter.delivered && letter.body && (
-                  <p className="text-hand text-foreground mt-3 pl-13 whitespace-pre-wrap border-t border-border pt-3">
+                  <p className="text-hand text-foreground mt-3 whitespace-pre-wrap border-t border-border pt-3">
                     {letter.body}
                   </p>
                 )}

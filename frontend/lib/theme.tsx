@@ -19,6 +19,7 @@ import {
   useEffect,
   useState,
 } from "react";
+import { MODE_KEY, ACCENT_KEY, TEXTSIZE_KEY } from "./theme-script";
 
 export type ThemeMode = "light" | "dark" | "system";
 export type Accent =
@@ -47,10 +48,6 @@ export const TEXT_SIZES: { value: TextSize; label: string }[] = [
   { value: "md", label: "Normal" },
   { value: "lg", label: "Large" },
 ];
-
-const MODE_KEY = "bibi_theme_mode";
-const ACCENT_KEY = "bibi_accent";
-const TEXTSIZE_KEY = "bibi_text_size";
 
 interface ThemeContextValue {
   mode: ThemeMode;
@@ -161,21 +158,5 @@ export function useTheme() {
   return useContext(ThemeContext);
 }
 
-/**
- * Inline script (stringified) that applies the stored theme before first
- * paint. Injected via dangerouslySetInnerHTML in the root layout.
- */
-export const THEME_INIT_SCRIPT = `
-(function () {
-  try {
-    var mode = localStorage.getItem("${MODE_KEY}") || "system";
-    var accent = localStorage.getItem("${ACCENT_KEY}") || "rose";
-    var size = localStorage.getItem("${TEXTSIZE_KEY}") || "md";
-    var dark = mode === "dark" || (mode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-    var root = document.documentElement;
-    if (dark) root.classList.add("dark");
-    root.setAttribute("data-accent", accent);
-    root.setAttribute("data-textsize", size);
-  } catch (e) {}
-})();
-`;
+// THEME_INIT_SCRIPT (pre-paint bootstrap) lives in lib/theme-script.ts —
+// it must stay in a server-safe module so the root layout can inline it.

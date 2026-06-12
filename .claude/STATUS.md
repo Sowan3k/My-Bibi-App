@@ -1,80 +1,66 @@
 # My Bibi — Project Status
 
-## Current Phase: Phase 1 (Complete — ready for end-to-end testing)
+## Current Phase: Phases 1–4 feature-complete · pre-release polish
 ## Last Updated: 2026-06-12
 
 ## What's done
-- [x] Repository created and pushed to GitHub (Sowan3k/My-Bibi-App)
-- [x] Project scaffold (CLAUDE.md, README, folder structure)
-- [x] Docker Compose config (frontend + backend + ollama, health checks, vault volume)
-- [x] `.env.example` + `.env` with generated secrets (JWT + invite)
-- [x] Frontend: Next.js 14 + TypeScript + Tailwind setup (dawn-tone palette)
-- [x] Frontend: Landing page, setup, join, login pages
-- [x] Frontend: Dashboard layout + sidebar (partner online indicator, mobile overlay)
-- [x] Frontend: Chat page (Us) — 3s polling, optimistic updates, photo/voice upload
-- [x] Frontend: Memory Garden — grid, FTS search, On This Day, save modal
-- [x] Frontend: Daily Bloom — prompt, answer flow, waiting state, mutual reveal, history
-- [x] Frontend: Journal (My Pages) — list/read/edit, private lock, full CRUD
-- [x] Frontend: Little Things — streak, days together, ping cooldown, mood weather
-- [x] Frontend: API client (`lib/api.ts`) with JWT + 401 redirect, types (`lib/types.ts`)
-- [x] Frontend: PWA manifest, multi-stage Dockerfile
-- [x] Frontend: `package.json` fixed (removed non-existent `@radix-ui/react-textarea`, added `tailwindcss-animate`)
-- [x] Frontend: `next.config.js` updated (`output: 'standalone'` for Docker multi-stage build)
-- [x] Frontend: `npm install` verified — 780 packages, no hard errors
-- [x] Backend: FastAPI app with lifespan, CORS (frontend URL only)
-- [x] Backend: Auth (setup first-user-only, invite token, join, login, me)
-- [x] Backend: Chat, Memory, Bloom, Journal, Little Things routers — all fully implemented
-- [x] Backend: Services layer (auth, vault, chat, bloom, journal)
-- [x] Backend: Mirror principle guard utility (`utils/mirror_guard.py`)
-- [x] Backend: Vault service (markdown-first storage, Obsidian-compatible)
-- [x] Backend: Python venv created at `backend/venv/`, all deps installed
-- [x] DB: SQLite schema (WAL mode, FTS5, all tables + indexes)
-- [x] Both servers smoke-tested: backend health `/health` returns `{"status":"ok"}`, frontend ready in 3.3s
-- [x] `dev-start.bat` — one-click Windows dev launcher (creates venv, installs deps, opens both servers)
-- [x] `SETUP.md` — full setup guide (Windows, macOS/Linux, Oracle Cloud, Fly.io, home server)
-- [x] UI mockup (`docs/mockup.html`) added and linked from README
-- [x] Roadmap expanded: 9 new Phase 2–4 features added (Time Capsule, On This Day, Letters, etc.)
 
-## What's next (Phase 1 end-to-end verification)
-- [ ] Open http://localhost:3000/setup, create first account, copy invite link
-- [ ] Open invite link in a second browser/incognito, create partner account
-- [ ] Verify shared chat works: send text, photo, voice note in both directions
-- [ ] Verify Memory Garden: save a memory, search for it, check vault markdown file written
-- [ ] Verify Daily Bloom: both partners answer → mutual reveal on second answer
-- [ ] Verify Journal: create entry, confirm it is NOT visible to other user
-- [ ] Verify Little Things: ping cooldown, streak increment on activity
-- [ ] Replace placeholder PWA icons with real artwork
-- [ ] Add first guardrail tests (mirror principle: A cannot read B's journal/bloom)
+### Phase 1 — Foundations
+- [x] Two-user auth (setup → invite → join → login), JWT, bcrypt
+- [x] Shared chat: text, photos, voice notes + 3s polling, optimistic updates
+- [x] Memory Garden: grid, FTS5 search, On This Day, save modal
+- [x] Daily Bloom: mutual-reveal ritual + history
+- [x] Journal (My Pages): private CRUD, markdown vault
+- [x] Little Things: streak, days together, ping cooldown, mood weather
+- [x] Vault: markdown-first storage, Obsidian-compatible
+- [x] Guardrail tests: `backend/tests/test_guardrails.py` — 9 passing (mirror principle, AI subject guard, encryption)
+
+### Phase 2 — Connection layer (NEW — all implemented)
+- [x] Time Capsules — locked until a future date, server-enforced, no early peeking (`/capsules`)
+- [x] Letters — delayed delivery inbox, sealed until the date (`/letters`)
+- [x] Future Dreams board — shared goals + step milestones + achieve→timeline (`/dreams`)
+- [x] Shared Playlist Memories — YouTube/Spotify official embeds + notes (`/playlist`)
+- [x] Relationship Timeline "Our Story" — merges everything chronologically (`/timeline`)
+- [x] Link previews in chat — server-fetched OpenGraph, cached, SSRF-guarded
+- [x] File sharing in chat (paperclip → file bubble)
+- [x] Mood weather: 6 self-disclosed moods + private 90-day heatmap
+- [x] Relationship start date ("Your day one") setting — either partner
+- [x] "Thinking of you" toast when partner pinged you
+
+### Phase 3 — AI layer (NEW — all implemented)
+- [x] `services/ai_service.py` — THE single Ollama chokepoint; cached availability; graceful degradation
+- [x] `assert_single_subject()` — AI-layer mirror guard (cross-person analysis raises)
+- [x] "I Noticed" (`/insights`) — analyses ONLY the user's own messages/blooms, output only to that user
+- [x] Memory resurfacing with optional AI caption (works without AI too)
+- [x] Honest offline state when Ollama isn't running
+
+### Phase 4 — Hardening (NEW — all implemented)
+- [x] Per-user journal encryption at rest — PBKDF2+Fernet, key only in process memory after login; vault stores ciphertext; auto-migration of legacy plaintext at login; 423 locked flow in UI
+- [x] Gift Vault (`/gifts`) — encrypted private wishlist, no share endpoint on purpose
+- [x] Monthly Scrapbook (`/scrapbook`) — generated from vault, print → PDF locally
+- [x] Relationship/Garden Map (`/map`) — SVG garden, plants by memory type, mobile horizontal scroll
+- [x] Real PWA icons (heart on dawn gradient, generated by `scripts/make_icons.py`)
+
+### Design system (NEW)
+- [x] Dark mode — warm charcoal, pre-paint script (no flash), system/light/dark
+- [x] 7 accent colour themes: Rose, Crimson ❤️, Ocean, Lavender, Sunset, Forest, Midnight — selectable from login/landing too, persisted in localStorage
+- [x] Text size setting: Cosy / Normal / Large
+- [x] Fonts: Plus Jakarta Sans (body) + Fraunces (display) + Caveat (handwriting)
+- [x] Animated ASCII-couple background on auth pages (heart beats, `<3` particles rise)
+- [x] Animation kit: staggered entrances, shimmer skeletons, glow-pulse, garden sway; reduced-motion respected
+- [x] Sectioned sidebar (Together / Keepsakes / Just me) + mobile bottom tab bar
+
+## API surface
+65 routes across: auth, chat, memory, bloom, journal, little-things, capsules, letters, dreams, playlist, timeline, links, insights, gifts, scrapbook.
+
+## What's next (pre-public-release)
+- [ ] Manual two-browser end-to-end pass (setup → invite → join → every feature)
+- [ ] Upgrade Next.js 14.2.3 → latest patched release
+- [ ] Docker Compose final hardening pass (restart policies, secrets)
+- [ ] Optional: CI workflow (pytest + next build + "no new outbound deps" check)
 
 ## Known issues / notes
-- Journal entries stored as plaintext for now; encryption comes in Phase 4
+- Journal/gift decryption requires a login after every server restart (by design — key lives only in memory). UI explains this.
 - Bloom prompt pool is deterministic-by-date; can be expanded with a larger bank
-- PWA icons are 1×1 pixel placeholders — swap before public release
-- No automated tests yet — add during Phase 1 completion
-- `dev-start.bat` uses Windows `venv\Scripts\` path; macOS/Linux should use `source venv/bin/activate`
-- Next.js 14 has a patched security vulnerability — upgrade to latest Next.js before public release
-
-## Phase 2 items (not started)
-- YouTube/Spotify embeds, oEmbed/OpenGraph link previews (server-fetched, no paid API)
-- File sharing (documents, PDFs)
-- Time Capsule (lock message + media until a future date)
-- On This Day (date-math resurface, no AI)
-- Shared Playlist Memories (URL + note + who shared it)
-- Letters (deliberate delayed messaging)
-- Relationship Timeline (aggregates vault markdown)
-- Future Dreams board (shared goals with milestone tracking)
-- Mood weather extended moods + calendar heatmap
-
-## Phase 3 items (not started)
-- Ollama integration via single `ai_service.py` chokepoint
-- "I noticed" private self-reflection (own messages only → own screen only)
-- Memory resurfacing nudges
-- Graceful degradation when Ollama is offline
-
-## Phase 4 items (not started)
-- Gift Vault (private per-user encrypted wishlist)
-- Monthly Scrapbook (auto-generated, local PDF export)
-- Relationship Map (visual garden, canvas optimised for mobile)
-- Per-user journal encryption (key derived from author's password)
-- PWA service worker + offline polish
-- Docker Compose packaging hardening + public release
+- The IDE may flag backend imports if its interpreter isn't set to `backend/venv`
+- `dev-start.bat` uses Windows `venv\Scripts\` path; macOS/Linux use `source venv/bin/activate`

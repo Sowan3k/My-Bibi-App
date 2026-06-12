@@ -35,12 +35,21 @@ My Bibi is designed with hard limits, not soft suggestions. These are not future
 
 | Feature | Description |
 |---|---|
-| **Shared Chat (Us)** | Private text, photo, and voice note chat between exactly two people |
+| **Shared Chat (Us)** | Private text, photo, voice note, and file chat — with rich link previews |
 | **Memory Garden** | Save meaningful moments as markdown — searchable, browsable, yours forever |
 | **Daily Bloom** | One shared prompt per day; answers revealed only after both respond |
-| **My Pages (Journal)** | Private per-person journal, encrypted at rest, never shared without explicit consent |
-| **Little Things** | Streak counter, relationship day milestone, thinking-of-you ping, mood weather |
-| **Thoughtfulness Engine** *(Phase 3)* | Local AI that resurfaces memories and suggests small gestures — never spies on your partner |
+| **Time Capsules** | Seal a message + photo until a future date — neither of you can open early |
+| **Letters** | Slow messages with scheduled delivery — a quieter inbox alongside chat |
+| **Future Dreams** | A shared board of goals with step milestones; achieved dreams join your timeline |
+| **Our Songs** | The playlist of your story — official YouTube/Spotify embeds + the note behind each song |
+| **Our Story (Timeline)** | Everything you kept, in chronological order — no AI, just your vault |
+| **Garden Map** | Your whole story as an animated garden — every memory a flower, star, or note |
+| **Monthly Scrapbook** | Auto-generated keepsake per month; export to PDF locally |
+| **My Pages (Journal)** | Private per-person journal, **encrypted at rest** — the server owner can't read it |
+| **Gift Vault** | Private encrypted wishlist (sizes, favourites) — invisible to your partner on purpose |
+| **I Noticed** | Local AI reflects your *own* words back to you — never your partner's (mirror principle) |
+| **Little Things** | Streak, days together, thinking-of-you ping, self-disclosed mood weather + heatmap |
+| **Themes** | Light & dark mode, 7 colour themes (incl. Crimson ❤️ and Midnight), 3 text sizes |
 
 ---
 
@@ -196,13 +205,15 @@ The vault is an Obsidian-compatible folder. You can open it in Obsidian for a be
 
 ## Phases
 
-### Phase 1 — Foundation (current)
+> **Status:** Phases 1–4 are feature-complete. See `.claude/STATUS.md` for the live checklist and the remaining pre-release polish items.
+
+### Phase 1 — Foundation ✅
 - Two-user auth with invite link flow
 - Vault path configuration
 - Shared chat (text, photos, voice notes)
 - Memory Garden (save + browse + search)
 
-### Phase 2 — Rituals & Memory
+### Phase 2 — Rituals & Memory ✅
 - Rich link previews, file sharing
 - Daily Bloom ritual polish
 - Milestones, streak, thinking-of-you ping
@@ -214,14 +225,14 @@ The vault is an Obsidian-compatible folder. You can open it in Obsidian for a be
 - **Relationship Timeline** — chronological story built from existing vault markdown; smooth scrolling; click opens the memory
 - **Future Dreams board** — shared goals (visit Kyoto, first apartment, learn scuba); attach memories as you move toward them; completed dreams archive into the timeline
 
-### Phase 3 — Local AI
+### Phase 3 — Local AI ✅
 - Ollama integration (Llama 3.2 3B or Qwen 2.5 3B)
 - Memory resurfacing nudges
 - Own-journal self-reflection
 - **"I noticed"** private self-reflection insights — analyses only *your* messages for recurring topics, unspoken gratitude, unfinished promises; output goes to you only; never cross-person; all LLM calls through `ai_service.py`
 - Mirror principle enforced at every AI call; degrades gracefully if Ollama is offline
 
-### Phase 4 — Privacy + Polish
+### Phase 4 — Privacy + Polish ✅
 - Per-user journal encryption (key derived from password)
 - **Gift Vault** — private per-user wishlist (wishes, ring sizes, favourites); encrypted; never visible to partner
 - **Monthly Scrapbook** — auto-generated from vault: top photos + memories + blooms + milestones; rendered as magazine layout; PDF export; generated locally, no external services

@@ -153,7 +153,7 @@ export default function LandingPage() {
               className="card-warm card-hover flex flex-col items-start gap-2 text-left"
             >
               <div className="w-9 h-9 rounded-xl bg-brand-50 dark:bg-brand-500/15 flex items-center justify-center">
-                <f.icon className="w-4.5 h-4.5 w-[18px] h-[18px] text-brand-400" />
+                <f.icon className="w-[18px] h-[18px] text-brand-400" />
               </div>
               <p className="text-sm font-medium text-foreground">{f.title}</p>
               <p className="text-xs text-muted-foreground leading-relaxed">

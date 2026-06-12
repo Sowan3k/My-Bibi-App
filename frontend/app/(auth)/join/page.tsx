@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Heart, Eye, EyeOff, AlertCircle } from "lucide-react";
@@ -8,7 +8,16 @@ import api from "@/lib/api";
 import { AuthAppearanceCorner } from "@/components/ThemeControls";
 import AsciiCoupleBackground from "@/components/AsciiCoupleBackground";
 
+// useSearchParams requires a Suspense boundary during prerender
 export default function JoinPage() {
+  return (
+    <Suspense fallback={null}>
+      <JoinForm />
+    </Suspense>
+  );
+}
+
+function JoinForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");

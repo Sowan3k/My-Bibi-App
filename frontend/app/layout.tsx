@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { ThemeProvider, THEME_INIT_SCRIPT } from "@/lib/theme";
-import RegisterSW from "@/components/RegisterSW";
+import { ThemeProvider } from "@/lib/theme";
+import { THEME_INIT_SCRIPT } from "@/lib/theme-script";
 
 export const metadata: Metadata = {
   title: "My Bibi ❤️",
@@ -57,10 +57,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className="min-h-screen bg-background antialiased">
-        <ThemeProvider>
-          {children}
-          <RegisterSW />
-        </ThemeProvider>
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );
